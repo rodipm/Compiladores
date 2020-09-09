@@ -7,7 +7,7 @@ from Compiler.code_generator import CodeGenerator
 def main():
     # Obtendo o código fonte
     text = ""
-    with open("source_code.basic") as f:
+    with open("source_code.bas") as f:
         text = f.read()
 
     # Efetuando as etapas de compilação
