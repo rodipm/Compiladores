@@ -16,56 +16,80 @@ class Parser(object):
         else:
             self.error()
 
-    
-    def empty(self):
-        """An empty production"""
-        return NoOp()
+    def program(self):
+        """program : compound_statement DOT"""
+        node = self.compound_statement()
+        self.eat(DOT)
+        return node
 
-    def Program(self):
+    def compound_statement(self):
         """
-         Program : BStatement BStatement*
+        compound_statement: BEGIN statement_list END
         """
-        node = self.BStatement()
-
-        results = [node]
-
-        while self.current_token.type == INTEGER:
-            results.append(self.BStatement())
-
+        self.eat(BEGIN)
+        nodes = self.statement_list()
+        self.eat(END)
         root = Compound()
         for node in nodes:
             root.children.append(node)
 
         return root
 
-    def BStatement(self):
+    def statement_list(self):
         """
-            BStatement : INTEGER Assign
+        statement_list : statement
+                       | statement SEMI statement_list
         """
-        self.eat(INTEGER)
-        nodes = self.statement_list()
+        node = self.statement()
+        results = [
+         node]
+        while self.current_token.type == SEMI:
+            self.eat(SEMI)
+            results.append(self.statement())
 
+        if self.current_token.type == ID:
+            self.error()
+        return results
 
-        return root
-
-    def Assign(self):
+    def statement(self):
         """
-            Assign : LET Var EQUAL Exp
+        statement : compound_statement
+                  | assignment_statement
+                  | empty
         """
-        self.eat(LET)
+        if self.current_token.type == BEGIN:
+            node = self.compound_statement()
+        else:
+            if self.current_token.type == ID:
+                node = self.assignment_statement()
+            else:
+                node = self.empty()
+        return node
 
-        left = self.Var()
-
+    def assignment_statement(self):
+        """
+        assignment_statement : variable ASSIGN expr
+        """
+        left = self.variable()
         token = self.current_token
-        self.eat(EQUAL)
-
-        right = self.Exp()
-
+        self.eat(ASSIGN)
+        right = self.expr()
         node = Assign(left, token, right)
         return node
 
+    def variable(self):
+        """
+        variable : ID
+        """
+        node = Var(self.current_token)
+        self.eat(ID)
+        return node
 
-    def Exp(self):
+    def empty(self):
+        """An empty production"""
+        return NoOp()
+
+    def expr(self):
         """
         expr : term ((PLUS | MINUS) term)*
         """
@@ -124,20 +148,32 @@ class Parser(object):
 
     def parse(self):
         """
-            Program : BStatement BStatement*
+        program : compound_statement DOT
 
-            BStatement : INTEGER Assign
+        compound_statement : BEGIN statement_list END
 
-            Assign : LET Var = Exp
+        statement_list : statement
+                       | statement SEMI statement_list
 
-            Var : (letter digit|letter) 
-                | (letter digit|letter) LPAREN Exp (COMMA Exp)* RPAREN
+        statement : compound_statement
+                  | assignment_statement
+                  | empty
 
-            Exp: Term (PLUS|MINUS Term)*
+        assignment_statement : variable ASSIGN expr
 
-            Term: Eb ((MUL | DIV) Eb)*
+        empty :
 
-            Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+        expr: term ((PLUS | MINUS) term)*
+
+        term: factor ((MUL | DIV) factor)*
+
+        factor : PLUS factor
+               | MINUS factor
+               | INTEGER
+               | LPAREN expr RPAREN
+               | variable
+
+        variable: ID
         """
         node = self.program()
         if self.current_token.type != EOF:

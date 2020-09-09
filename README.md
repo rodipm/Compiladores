@@ -13,7 +13,7 @@ Program : BStatement BStatement* INTEGER END
 
 BStatement : INTEGER Assign|Read|Data|Print|Goto|If|For|Next|Dim|Def|Gosub|Return|Remark
 
-Assign : LET Var = Exp
+Assign : LET Var EQUAL Exp
 
 Var : (letter digit|letter) 
     | (letter digit|letter) LPAREN Exp (COMMA Exp)* RPAREN
@@ -54,6 +54,7 @@ Remark :
 + MINUS
 + MUL
 + DIV
++ EQUAL
 + LPAREN
 + RPAREN
 + COMMA
@@ -76,3 +77,22 @@ Remark :
 + GOSUB
 + RETURN
 + REM
+
+## Versao simplificada para operacoes matematicas
+
+```
+Program : BStatement BStatement*
+
+BStatement : INTEGER Assign
+
+Assign : LET Var = Exp
+
+Var : (letter digit|letter) 
+    | (letter digit|letter) LPAREN Exp (COMMA Exp)* RPAREN
+
+Exp: Term (PLUS|MINUS Term)*
+
+Term: Eb ((MUL | DIV) Eb)*
+
+Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+```

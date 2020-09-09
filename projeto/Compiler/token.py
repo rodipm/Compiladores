@@ -1,17 +1,18 @@
-INTEGER, PLUS, MINUS, MUL, DIV, LPAREN, RPAREN, ID, ASSIGN, BEGIN, END, SEMI, DOT, EOF = ('INTEGER',
-                                                                                          'PLUS',
-                                                                                          'MINUS',
-                                                                                          'MUL',
-                                                                                          'DIV',
-                                                                                          '(',
-                                                                                          ')',
-                                                                                          'ID',
-                                                                                          'ASSIGN',
-                                                                                          'BEGIN',
-                                                                                          'END',
-                                                                                          'SEMI',
-                                                                                          'DOT',
-                                                                                          'EOF')
+INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET = (
+    'INTEGER',
+    'PLUS',
+    'MINUS',
+    'MUL',
+    'DIV',
+    '=',
+    '(',
+    ')',
+    'LET'
+)
+
+RESERVED_KEYWORDS = {
+    'LET':Token('LET', 'LET'),
+}
 
 class Token(object):
 
@@ -20,12 +21,8 @@ class Token(object):
         self.value = value
 
     def __str__(self):
-        """String representation of the class instance.
-
-        Examples:
-            Token(INTEGER, 3)
-            Token(PLUS, '+')
-            Token(MUL, '*')
+        """
+        Representação do Token em String
         """
         return 'Token({type}, {value})'.format(type=(self.type),
           value=(repr(self.value)))
@@ -33,6 +30,3 @@ class Token(object):
     def __repr__(self):
         return self.__str__()
 
-
-RESERVED_KEYWORDS = {'BEGIN':Token('BEGIN', 'BEGIN'),
- 'END':Token('END', 'END')}
