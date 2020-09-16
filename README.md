@@ -15,10 +15,12 @@ BStatement : INTEGER Assign|Read|Data|Print|Goto|If|For|Next|Dim|Def|Gosub|Retur
 
 Assign : LET Var EQUAL Exp
 
-Var : (letter digit|letter) 
-    | (letter digit|letter) LPAREN Exp (COMMA Exp)* RPAREN
+Var : ID
+    | ID LPAREN Exp (COMMA Exp)* RPAREN
 
-Exp: (PLUS|MINUS)* Eb (PLUS|MINUS|MUL|DIV Eb)*
+Exp: Term (PLUS|MINUS Term)*
+
+Term: Eb ((MUL | DIV) Eb)*
 
 Eb: LPAREN Exp RPAREN|Num|Var|FN letter LPAREN Exp RPAREN
 
@@ -45,6 +47,8 @@ Gosub :
 Return :
 
 Remark : 
+
+ID: letter(digit|letter)*
 ```
 
 ## Terminais
@@ -87,12 +91,13 @@ BStatement : INTEGER Assign
 
 Assign : LET Var = Exp
 
-Var : (letter digit|letter) 
-    | (letter digit|letter) LPAREN Exp (COMMA Exp)* RPAREN
+Var : ID
 
 Exp: Term (PLUS|MINUS Term)*
 
 Term: Eb ((MUL | DIV) Eb)*
 
 Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+
+ID: letter(digit|letter)*
 ```

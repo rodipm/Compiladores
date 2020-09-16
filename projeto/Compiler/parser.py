@@ -27,12 +27,12 @@ class Parser(object):
         """
         node = self.BStatement()
 
-        results = [node]
+        nodes = [node]
 
         while self.current_token.type == INTEGER:
-            results.append(self.BStatement())
+            nodes.append(self.BStatement())
 
-        root = Compound()
+        root = StatementList()
         for node in nodes:
             root.children.append(node)
 
@@ -43,10 +43,8 @@ class Parser(object):
             BStatement : INTEGER Assign
         """
         self.eat(INTEGER)
-        nodes = self.statement_list()
-
-
-        return root
+        node = self.Assign()
+        return node
 
     def Assign(self):
         """
@@ -64,12 +62,19 @@ class Parser(object):
         node = Assign(left, token, right)
         return node
 
+    def Var(self):
+        """
+            Var : ID
+        """
+        node = Var(self.current_token)
+        self.eat(ID)
+        return node
 
     def Exp(self):
         """
-        expr : term ((PLUS | MINUS) term)*
+            Exp: Term (PLUS|MINUS Term)*
         """
-        node = self.term()
+        node = self.Term()
         while self.current_token.type in (PLUS, MINUS):
             token = self.current_token
             if token.type == PLUS:
@@ -77,13 +82,15 @@ class Parser(object):
             else:
                 if token.type == MINUS:
                     self.eat(MINUS)
-            node = BinOp(left=node, op=token, right=(self.term()))
+            node = BinOp(left=node, op=token, right=(self.Term()))
 
         return node
 
-    def term(self):
-        """term : factor ((MUL | DIV) factor)*"""
-        node = self.factor()
+    def Term(self):
+        """
+            Term: Eb ((MUL | DIV) Eb)*
+        """
+        node = self.Eb()
         while self.current_token.type in (MUL, DIV):
             token = self.current_token
             if token.type == MUL:
@@ -91,35 +98,36 @@ class Parser(object):
             else:
                 if token.type == DIV:
                     self.eat(DIV)
-            node = BinOp(left=node, op=token, right=(self.factor()))
+            node = BinOp(left=node, op=token, right=(self.Eb()))
 
         return node
 
-    def factor(self):
-        """factor : PLUS factor
-                  | MINUS factor
+    def Eb(self):
+        """
+            Eb : PLUS Eb
+                  | MINUS Eb
                   | INTEGER
-                  | LPAREN expr RPAREN
-                  | variable
+                  | LPAREN Exp RPAREN
+                  | Var
         """
         token = self.current_token
         if token.type == PLUS:
             self.eat(PLUS)
-            node = UnaryOp(token, self.factor())
+            node = UnaryOp(token, self.Eb())
             return node
         if token.type == MINUS:
             self.eat(MINUS)
-            node = UnaryOp(token, self.factor())
+            node = UnaryOp(token, self.Eb())
             return node
         if token.type == INTEGER:
             self.eat(INTEGER)
             return Num(token)
         if token.type == LPAREN:
             self.eat(LPAREN)
-            node = self.expr()
+            node = self.Exp()
             self.eat(RPAREN)
             return node
-        node = self.variable()
+        node = self.Var()
         return node
 
     def parse(self):
@@ -130,8 +138,7 @@ class Parser(object):
 
             Assign : LET Var = Exp
 
-            Var : (letter digit|letter) 
-                | (letter digit|letter) LPAREN Exp (COMMA Exp)* RPAREN
+            Var : ID
 
             Exp: Term (PLUS|MINUS Term)*
 
@@ -139,7 +146,7 @@ class Parser(object):
 
             Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
         """
-        node = self.program()
+        node = self.Program()
         if self.current_token.type != EOF:
             self.error()
         return node

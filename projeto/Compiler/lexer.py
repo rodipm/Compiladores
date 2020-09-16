@@ -7,8 +7,8 @@ class Lexer(object):
         self.pos = 0
         self.current_char = self.text[self.pos]
 
-    def error(self):
-        raise Exception('Caractere inválido')
+    def error(self, ch):
+        raise Exception('Caractere inválido: ' + ch)
 
     def advance(self):
         """
@@ -74,24 +74,27 @@ class Lexer(object):
                     return self._id()
                 if self.current_char.isdigit():
                     return Token(INTEGER, self.integer())
-                if self.current_char == '+':
-                    self.advance()
-                    return Token(PLUS, '+')
-                if self.current_char == '-':
-                    self.advance()
-                    return Token(MINUS, '-')
-                if self.current_char == '*':
-                    self.advance()
-                    return Token(MUL, '*')
-                if self.current_char == '/':
-                    self.advance()
-                    return Token(DIV, '/')
-                if self.current_char == '(':
-                    self.advance()
-                    return Token(LPAREN, '(')
-                if self.current_char == ')':
-                    self.advance()
-                    return Token(RPAREN, ')')
-            self.error()
+            if self.current_char == '+':
+                self.advance()
+                return Token(PLUS, '+')
+            if self.current_char == '-':
+                self.advance()
+                return Token(MINUS, '-')
+            if self.current_char == '*':
+                self.advance()
+                return Token(MUL, '*')
+            if self.current_char == '/':
+                self.advance()
+                return Token(DIV, '/')
+            if self.current_char == '=':
+                self.advance()
+                return Token(EQUAL, '=')
+            if self.current_char == '(':
+                self.advance()
+                return Token(LPAREN, '(')
+            if self.current_char == ')':
+                self.advance()
+                return Token(RPAREN, ')')
+            self.error(self.current_char)
 
         return Token(EOF, None)

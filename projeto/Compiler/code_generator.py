@@ -31,6 +31,8 @@ class CodeGenerator(NodeVisitor):
                     return right + '+ ' + left
             return left + '+ ' + right
         if node.op.type == MINUS:
+            left = self.visit(node.left)
+            right = self.visit(node.right)
             print('BinOp', node.op.type, left, right)
             left = self.visit(node.left)
             right = self.visit(node.right)
@@ -50,7 +52,15 @@ class CodeGenerator(NodeVisitor):
                     return right + '* ' + left
             return left + '* ' + right
         if node.op.type == DIV:
-            return self.visit(node.left) + '/ ' + self.visit(node.right)
+            left = self.visit(node.left)
+            right = self.visit(node.right)
+            print('BinOp', node.op.type, left, right)
+            if hasattr(node.right, 'op'):
+                if node.right.op.type in [MUL, DIV, PLUS, MINUS]:
+                    print('inverted')
+                    return right + '/ ' + left
+            return left + '/ ' + right
+
 
     def visit_Num(self, node):
         num_const_label = f"N{node.value}"
@@ -66,7 +76,7 @@ class CodeGenerator(NodeVisitor):
         if op == MINUS:
             return -self.visit(node.expr)
 
-    def visit_Compound(self, node):
+    def visit_StatementList(self, node):
         child_code = []
         for child in node.children:
             child_code.append(self.visit(child))
