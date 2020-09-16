@@ -18,7 +18,7 @@ def main():
 
     # Mostra o resultado em linguagem de baixo nível
     print(result)
-    with open('out.asm', 'w+') as (f):
+    with open('out.S', 'w+') as (f):
         f.write(result)
 
 if __name__ == '__main__':

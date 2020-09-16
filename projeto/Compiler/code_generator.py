@@ -21,53 +21,63 @@ class CodeGenerator(NodeVisitor):
         self.parser = parser
 
     def visit_BinOp(self, node):
-        if node.op.type == PLUS:
-            left = self.visit(node.left)
-            right = self.visit(node.right)
-            print('BinOp', node.op.type, left, right)
-            if hasattr(node.right, 'op'):
-                if node.right.op.type in [MUL, DIV, PLUS, MINUS]:
-                    print('inverted')
-                    return right + '+ ' + left
-            return left + '+ ' + right
-        if node.op.type == MINUS:
-            left = self.visit(node.left)
-            right = self.visit(node.right)
-            print('BinOp', node.op.type, left, right)
-            left = self.visit(node.left)
-            right = self.visit(node.right)
-            print('BinOp', node.op.type, left, right)
-            if hasattr(node.right, 'op'):
-                if node.right.op.type in [MUL, DIV, PLUS, MINUS]:
-                    print('inverted')
-                    return right + '- ' + left
-            return left + '- ' + right
-        if node.op.type == MUL:
-            left = self.visit(node.left)
-            right = self.visit(node.right)
-            print('BinOp', node.op.type, left, right)
-            if hasattr(node.right, 'op'):
-                if node.right.op.type in [MUL, DIV, PLUS, MINUS]:
-                    print('inverted')
-                    return right + '* ' + left
-            return left + '* ' + right
-        if node.op.type == DIV:
-            left = self.visit(node.left)
-            right = self.visit(node.right)
-            print('BinOp', node.op.type, left, right)
-            if hasattr(node.right, 'op'):
-                if node.right.op.type in [MUL, DIV, PLUS, MINUS]:
-                    print('inverted')
-                    return right + '/ ' + left
-            return left + '/ ' + right
+        left = self.visit(node.left)
+        right = self.visit(node.right)
+
+        print('BinOp', node.op.type, left, right)
+
+        result_code = ""
+
+        if node.op.type in [PLUS, MINUS]:
+            left_code = ""
+            mid_op = ""
+            right_code = ""
+
+            if node.op.type == PLUS:
+                mid_op = "addl"
+            if node.op.type == MINUS:
+                mid_op = "subl"
+
+            if not hasattr(node.left, 'op'):
+                left_code = "movl\t" + left + ", %edx\n" + mid_op + "\t%edx, %eax\n"
+            elif hasattr(node.left, 'op'):
+                left_code = left + "\n"
+
+            if not hasattr(node.right, 'op'):
+                right_code = mid_op + "\t" + right + ", %eax\n"
+            elif hasattr(node.right, 'op'):
+                right_code = right + "\n"
+
+            result_code = right_code + left_code 
+
+        else:
+            op_1 = ""
+            op_2 = ""
+            opr = ""
+            if node.op.type == MUL:
+                opr = "imul\t%ecx, %edx\nmovl\t%edx, %eax\n"
+            if node.op.type == DIV:
+                opr = "subl"
+
+            if not hasattr(node.left, 'op'):
+                op_1 = "movl\t" + left + ", %ecx\n"
+            elif hasattr(node.left, 'op'):
+                op_1 = left + "\n" + "movl\t" + "%eax, %ecx\n"
+
+            if not hasattr(node.right, 'op'):
+                op_2 = "movl\t" + right + ", %edx\n"
+            elif hasattr(node.right, 'op'):
+                op_2 = left + "\n" + "movl\t" + "%eax, %edx\n"
+
+            result_code = op_1 + op_2 + opr
+
+
+        return result_code
+
 
 
     def visit_Num(self, node):
-        num_const_label = f"N{node.value}"
-        hex_value = '/' + hex(node.value)[2:].zfill(2)
-        if num_const_label not in self.NUMERIC_CONSTANS.keys():
-            self.NUMERIC_CONSTANS[num_const_label] = f"{num_const_label}\tK\t{hex_value}"
-        return num_const_label + '\n'
+        return f"${node.value}"
 
     def visit_UnaryOp(self, node):
         op = node.op.type
@@ -79,7 +89,7 @@ class CodeGenerator(NodeVisitor):
     def visit_StatementList(self, node):
         child_code = []
         for child in node.children:
-            child_code.append(self.visit(child))
+            child_code.append("\nmovl\t$0, %eax\n" + self.visit(child))
 
         child_code = list(filter(lambda x: x != None, child_code))
         self.generated_code += ''.join(child_code)
@@ -88,7 +98,11 @@ class CodeGenerator(NodeVisitor):
         var_name = node.left.value
         value = self.visit(node.right)
         self.GLOBAL_SCOPE[var_name] = value
-        return 'LD ' + str(value) + 'MM ' + var_name + '\n'
+
+        if node.right.__class__.__name__ in ["Var", "Num"]:
+            return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
+        else:
+            return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
 
     def visit_Var(self, node):
         var_name = node.value
@@ -96,7 +110,7 @@ class CodeGenerator(NodeVisitor):
         if val is None:
             raise NameError(repr(var_name))
         else:
-            return str(var_name) + '\n'
+            return "_" + str(var_name)
 
     def visit_NoOp(self, node):
         pass
@@ -106,9 +120,18 @@ class CodeGenerator(NodeVisitor):
         if tree is None:
             return ''
         self.visit(tree)
-        asm_code = 'INICIO\t@\t/0100\n'
+
+        # Variaveis
+        asm_code = "\t.data\n\n"
+        asm_code += '\n'.join(map(lambda k: f".comm	_{k}, 4, 4", self.GLOBAL_SCOPE.keys())) + '\n'
+
+        # Código
+        asm_code += "\n\n.text\n\n"
+        asm_code += "\t.globl	_main\n_main:\n"
+
+        # asm_code += "\tmovl\t$0, %eax\n"
         asm_code += ''.join(list(map(lambda x: '\t' + x + '\n', self.generated_code.split('\n'))))
-        asm_code += '\tCN\t/00\n\t@\t/0500\t;Dados\n'
-        asm_code += '\n'.join(map(lambda k: f"{k}\tK\t/00", self.GLOBAL_SCOPE.keys())) + '\n'
-        asm_code += '\n'.join(self.NUMERIC_CONSTANS.values())
+
+        asm_code += "\tret\n"
+
         return asm_code
