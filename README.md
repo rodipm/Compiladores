@@ -22,31 +22,40 @@ Exp: Term (PLUS|MINUS Term)*
 
 Term: Eb ((MUL | DIV) Eb)*
 
-Eb: LPAREN Exp RPAREN|Num|Var|FN letter LPAREN Exp RPAREN
+Eb: LPAREN Exp RPAREN| INTEGER |Var|FN letter LPAREN Exp RPAREN
 
 Read : READ Var (COMMA Var)*
 
-Data :
+Data : DATA Snum (COMMA Snum)*
 
-Print :
+Print : PRINT  
+      | PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
 
-Goto :
+Pitem : Exp | QUOTES CHARACTER(CHARACTER)* QUOTES (Exp)*
 
-If :
+Goto : (GOTO | GO TO) Integer
 
-For :
+If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
 
-Next :
+For : FOR ID EQUAL Exp TO Exp | FOR ID EQUAL Exp TO Exp STEP Exp
 
-Dim :
+Next : NEXT ID
 
-Def :
+Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
 
-Gosub :
+Def : DEF FN ID LPAREN ID RPAREN EQUAL Exp
 
-Return :
+Gosub : GOSUB INTEGER
 
-Remark : 
+Return : RETURN
+
+Remark : REM (CHARACTER)*
+
+Snum = PLUS | MINUS INTEGER
+
+INTEGER: digit(digit)*
+
+CHARACTER = letter | digit | special
 
 ID: letter(digit|letter)*
 ```
@@ -54,15 +63,21 @@ ID: letter(digit|letter)*
 ## Terminais
 
 + INTEGER
-+ PLUS
-+ MINUS
-+ MUL
-+ DIV
-+ EQUAL
-+ LPAREN
-+ RPAREN
-+ COMMA
-+ LET
++ PLUS +
++ MINUS -
++ MUL *
++ DIV /
++ EQUAL =
++ GRTEQL >=
++ GRT >
++ NOTEQL <>
++ LESSEQL <=
++ LESS <
++ LPAREN (
++ RPAREN )
++ COMMA ,
++ QUOTES "
++ LET 
 + FN
 + READ
 + DATA
@@ -81,6 +96,7 @@ ID: letter(digit|letter)*
 + GOSUB
 + RETURN
 + REM
+
 
 ## Versao simplificada para operacoes matematicas
 
