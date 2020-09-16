@@ -29,26 +29,32 @@ class CodeGenerator(NodeVisitor):
         result_code = ""
 
         if node.op.type in [PLUS, MINUS]:
-            left_code = ""
-            mid_op = ""
-            right_code = ""
+            op_1 = ""
+            opr = ""
+            op_2 = ""
 
             if node.op.type == PLUS:
-                mid_op = "addl"
+                opr = "addl"
             if node.op.type == MINUS:
-                mid_op = "subl"
+                opr = "subl"
 
             if not hasattr(node.left, 'op'):
-                left_code = "movl\t" + left + ", %edx\n" + mid_op + "\t%edx, %eax\n"
+                op_1 = "movl\t" + left + ", %edx\n" + opr + "\t%edx, %eax\n"
             elif hasattr(node.left, 'op'):
-                left_code = left + "\n"
+                op_1 = left + "\n"
 
             if not hasattr(node.right, 'op'):
-                right_code = mid_op + "\t" + right + ", %eax\n"
+                op_2 = opr + "\t" + right + ", %eax\n"
             elif hasattr(node.right, 'op'):
-                right_code = right + "\n"
+                op_2 = right + "\n"
 
-            result_code = right_code + left_code 
+            if hasattr(node.right, 'op') and node.right.op.type in [MUL, DIV]:
+                result_code = op_2 + op_1
+            else:
+                result_code = op_1 + op_2
+
+            if hasattr(node.right, 'op') and hasattr(node.left, 'op'):
+                result_code = op_2 + "movl\t%eax, %ebx\n" + op_1 + opr + "\t%ebx, %eax\n"
 
         else:
             op_1 = ""
@@ -56,18 +62,30 @@ class CodeGenerator(NodeVisitor):
             opr = ""
             if node.op.type == MUL:
                 opr = "imul\t%ecx, %edx\nmovl\t%edx, %eax\n"
-            if node.op.type == DIV:
-                opr = "subl"
+            
 
-            if not hasattr(node.left, 'op'):
-                op_1 = "movl\t" + left + ", %ecx\n"
-            elif hasattr(node.left, 'op'):
-                op_1 = left + "\n" + "movl\t" + "%eax, %ecx\n"
+                if not hasattr(node.left, 'op'):
+                    op_1 = "movl\t" + left + ", %ecx\n"
+                elif hasattr(node.left, 'op'):
+                    op_1 = left + "\n" + "movl\t" + "%eax, %ecx\n"
 
-            if not hasattr(node.right, 'op'):
-                op_2 = "movl\t" + right + ", %edx\n"
-            elif hasattr(node.right, 'op'):
-                op_2 = left + "\n" + "movl\t" + "%eax, %edx\n"
+                if not hasattr(node.right, 'op'):
+                    op_2 = "movl\t" + right + ", %edx\n"
+                elif hasattr(node.right, 'op'):
+                    op_2 = left + "\n" + "movl\t" + "%eax, %edx\n"
+                    
+            elif node.op.type == DIV:
+                opr = "movl\t$0, %edx\nidiv\t%ecx\n"
+
+                if not hasattr(node.left, 'op'):
+                    op_1 = "movl\t" + left + ", %eax\n"
+                elif hasattr(node.left, 'op'):
+                    op_1 = left + "\n"
+
+                if not hasattr(node.right, 'op'):
+                    op_2 = "movl\t" + right + ", %ecx\n"
+                elif hasattr(node.right, 'op'):
+                    op_2 = left + "\n" + "movl\t" + "%eax, %ecx\n"
 
             result_code = op_1 + op_2 + opr
 
@@ -129,7 +147,6 @@ class CodeGenerator(NodeVisitor):
         asm_code += "\n\n.text\n\n"
         asm_code += "\t.globl	_main\n_main:\n"
 
-        # asm_code += "\tmovl\t$0, %eax\n"
         asm_code += ''.join(list(map(lambda x: '\t' + x + '\n', self.generated_code.split('\n'))))
 
         asm_code += "\tret\n"
