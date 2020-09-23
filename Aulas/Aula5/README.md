@@ -23,7 +23,7 @@ Exp: Term (PLUS|MINUS Term)*
 
 Term: Eb ((MUL | DIV) Eb)*
 
-Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+Eb: LPAREN Exp RPAREN | INTEGER | Var
 
 Remark : REM (CHARACTER)*
 
@@ -178,3 +178,151 @@ Este programa assembly, quando montado utilizando o gcc, pode ser executado e re
 
 
 ## Descrição em código do analisador semantico
+
+Descreve-se aqui a representação dos automatos reconhecedores da linguagem BASIC implementados como um parser em linguagem Python.
+
+Cada regra de formação é transformada em um método. O método "eat" consome um token de tipo específico a partir dos tokens gerados pelo analisador léxico (retorna erro caso não seja um Token do tipo esperado).
+
+```python
+    def Program(self):
+        """
+         Program : BStatement BStatement*
+        """
+        node = self.BStatement()
+
+        nodes = [node]
+
+        while self.current_token.type == INTEGER:
+            nodes.append(self.BStatement())
+
+        root = StatementList()
+        for node in nodes:
+            root.children.append(node)
+
+        return root
+
+    def BStatement(self):
+        """
+            BStatement : INTEGER Assign | Remark
+        """
+        node = None
+        self.eat(INTEGER)
+        if self.current_token.type == LET:
+            node = self.Assign()
+        elif self.current_token.type == REM:
+            node = self.Remark()
+        return node
+
+    def Assign(self):
+        """
+            Assign : LET Var EQUAL Exp
+        """
+        self.eat(LET)
+
+        left = self.Var()
+
+        token = self.current_token
+        self.eat(EQUAL)
+
+        right = self.Exp()
+
+        node = Assign(left, token, right)
+        return node
+
+    def Var(self):
+        """
+            Var : ID
+        """
+        node = Var(self.current_token)
+        self.eat(ID)
+        return node
+
+    def Exp(self):
+        """
+            Exp: Term (PLUS|MINUS Term)*
+        """
+        node = self.Term()
+        while self.current_token.type in (PLUS, MINUS):
+            token = self.current_token
+            if token.type == PLUS:
+                self.eat(PLUS)
+            else:
+                if token.type == MINUS:
+                    self.eat(MINUS)
+            node = BinOp(left=node, op=token, right=(self.Term()))
+
+        return node
+
+    def Term(self):
+        """
+            Term: Eb ((MUL | DIV) Eb)*
+        """
+        node = self.Eb()
+        while self.current_token.type in (MUL, DIV):
+            token = self.current_token
+            if token.type == MUL:
+                self.eat(MUL)
+            else:
+                if token.type == DIV:
+                    self.eat(DIV)
+            node = BinOp(left=node, op=token, right=(self.Eb()))
+
+        return node
+
+    def Eb(self):
+        """
+            Eb : PLUS Eb
+                  | MINUS Eb
+                  | INTEGER
+                  | LPAREN Exp RPAREN
+                  | Var
+        """
+        token = self.current_token
+        if token.type == PLUS:
+            self.eat(PLUS)
+            node = UnaryOp(token, self.Eb())
+            return node
+        if token.type == MINUS:
+            self.eat(MINUS)
+            node = UnaryOp(token, self.Eb())
+            return node
+        if token.type == INTEGER:
+            self.eat(INTEGER)
+            return Num(token)
+        if token.type == LPAREN:
+            self.eat(LPAREN)
+            node = self.Exp()
+            self.eat(RPAREN)
+            return node
+        node = self.Var()
+        return node
+
+    def Remark(self):
+        self.eat(REM)
+        self.eat(ID) # sequencia de caracteres
+        return self.empty()
+```
+
+## Verificação dos estados e transições do reconhecedor
+
+A seguir mostra-se a sequencia de regras de formação (entre parêntesis) e tokens reconhecidos para analisar a formação das 3 linhas de código descritas no enunciado, sendo aqui representadas pelas variáveis 'f', 'g' e 'h'.
+
+```
+100 LET f = a/2 + (b-3)*(b+2)
+
+
+(BStatement) -> INTEGER -> (Assign) -> LET -> (Var) -> ID -> -> EQUAL-> (Exp)-> (Term) -> (Eb) -> (Var) -> ID-> -> DIV -> (Eb) -> INTEGER -> -> PLUS -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> MINUS -> (Term) (Eb) -> INTEGER -> -> RPAREN -> -> MUL -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN
+
+
+110 LET g = (((b)) * (2 - c))
+
+(BStatement) ->INTEGER-> (Assign) -> LET -> (Var) -> ID -> -> EQUAL -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) ->(Eb) -> -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> RPAREN -> -> RPAREN -> -> MUL -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> INTEGER -> -> MINUS -> (Term) -> (Eb) -> (Var) -> ID -> -> RPAREN -> -> RPAREN
+
+120 LET h = b + ((1+1) + 1)
+
+(BStatement) ->INTEGER-> (Assign) -> LET -> (Var) -> ID -> -> EQUAL -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> PLUS -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> INTEGER -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN
+
+```
+
+
+## Representação escrita do autômato reconhecedor e Log de Estados e Transições
