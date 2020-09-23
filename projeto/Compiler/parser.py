@@ -40,10 +40,14 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign
+            BStatement : INTEGER Assign | Remark
         """
+        node = None
         self.eat(INTEGER)
-        node = self.Assign()
+        if self.current_token.type == LET:
+            node = self.Assign()
+        elif self.current_token.type == REM:
+            node = self.Remark()
         return node
 
     def Assign(self):
@@ -129,6 +133,11 @@ class Parser(object):
             return node
         node = self.Var()
         return node
+
+    def Remark(self):
+        self.eat(REM)
+        self.eat(ID) # sequencia de caracteres
+        return self.empty()
 
     def parse(self):
         """

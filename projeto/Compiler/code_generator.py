@@ -13,9 +13,7 @@ class NodeVisitor(object):
 
 class CodeGenerator(NodeVisitor):
     GLOBAL_SCOPE = {}
-    NUMERIC_CONSTANS = {}
     generated_code = ''
-    code_obj = ''
 
     def __init__(self, parser):
         self.parser = parser
@@ -48,13 +46,16 @@ class CodeGenerator(NodeVisitor):
             elif hasattr(node.right, 'op'):
                 op_2 = right + "\n"
 
-            if hasattr(node.right, 'op') and node.right.op.type in [MUL, DIV]:
+            if hasattr(node.right, 'op') and node.right.op.type in [MUL, DIV, PLUS, MINUS]:
                 result_code = op_2 + op_1
             else:
                 result_code = op_1 + op_2
 
             if hasattr(node.right, 'op') and hasattr(node.left, 'op'):
                 result_code = op_2 + "movl\t%eax, %ebx\n" + op_1 + opr + "\t%ebx, %eax\n"
+
+            if not hasattr(node.right, 'op') and not hasattr(node.left, 'op'):
+                result_code = "movl\t" + left + ", %eax\n" + "movl\t" + right + ",%edx\n" + opr + "\t%edx, %eax\n"
 
         else:
             op_1 = ""
@@ -72,7 +73,7 @@ class CodeGenerator(NodeVisitor):
                 if not hasattr(node.right, 'op'):
                     op_2 = "movl\t" + right + ", %edx\n"
                 elif hasattr(node.right, 'op'):
-                    op_2 = left + "\n" + "movl\t" + "%eax, %edx\n"
+                    op_2 = right + "\n" + "movl\t" + "%eax, %edx\n"
                     
             elif node.op.type == DIV:
                 opr = "movl\t$0, %edx\nidiv\t%ecx\n"
@@ -85,7 +86,7 @@ class CodeGenerator(NodeVisitor):
                 if not hasattr(node.right, 'op'):
                     op_2 = "movl\t" + right + ", %ecx\n"
                 elif hasattr(node.right, 'op'):
-                    op_2 = left + "\n" + "movl\t" + "%eax, %ecx\n"
+                    op_2 = right + "\n" + "movl\t" + "%eax, %ecx\n"
 
             result_code = op_1 + op_2 + opr
 
@@ -107,7 +108,8 @@ class CodeGenerator(NodeVisitor):
     def visit_StatementList(self, node):
         child_code = []
         for child in node.children:
-            child_code.append("\nmovl\t$0, %eax\n" + self.visit(child))
+            if child.__class__.__name__ != "NoOp":
+                child_code.append("\nmovl\t$0, %eax\n" + self.visit(child))
 
         child_code = list(filter(lambda x: x != None, child_code))
         self.generated_code += ''.join(child_code)

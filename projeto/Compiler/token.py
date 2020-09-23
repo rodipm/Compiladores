@@ -1,4 +1,4 @@
-INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, EOF= (
+INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF= (
     'INTEGER',
     'PLUS',
     'MINUS',
@@ -9,6 +9,7 @@ INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, EOF= (
     ')',
     'LET',
     'ID',
+    'REM',
     'EOF'
 )
 
@@ -30,4 +31,5 @@ class Token(object):
 
 RESERVED_KEYWORDS = {
     'LET':Token('LET', 'LET'),
+    'REM':Token('REM', 'REM'),
 }
