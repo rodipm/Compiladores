@@ -122,3 +122,33 @@ ID: letter(digit|letter)*
 
 Após feitos testes, pode-se verificar a funcionalidade da geração de código e interpretação do código fonte, sendo capaz de declarar variáveis e utiliza-las em expressões aritméticas (adição, subtração, multiplicação e divisão) utilizando instruções de máquina geradas em x86 assembly, sendo o código assembly montado com auxílio do gcc.
 
+
+## Incluindo novas regras de formação
+
+
+```
+Program : BStatement BStatement*
+
+BStatement : INTEGER Assign | PRINT | Remark
+
+Assign : LET Var = Exp
+
+Var : ID
+
+Exp: Term (PLUS|MINUS Term)*
+
+Term: Eb ((MUL | DIV) Eb)*
+
+Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+
+Print : PRINT  
+      | PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
+
+Pitem : Exp
+
+Remark : REM (CHARACTER)*
+
+ID: letter(digit|letter)*
+```
+
+

@@ -41,7 +41,7 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | Remark
+            BStatement : INTEGER Assign | PRINT | Remark
         """
         print("(BStatement)")
         node = None
@@ -51,6 +51,8 @@ class Parser(object):
             node = self.Assign()
         elif self.current_token.type == REM:
             node = self.Remark()
+        elif self.current_token.type == PRINT:
+            node = self.Print()
         return node
 
     def Assign(self):
@@ -119,6 +121,37 @@ class Parser(object):
 
         return node
 
+    def Print(self):
+        """
+            Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
+        """
+        print("Print")
+        self.eat(PRINT)
+
+        print_root = PrintStatement()
+
+        print_root.children.append(self.Pitem())
+
+        token = self.current_token
+        print("AFTER FIRST PITEM")
+        print("TOKEN: ", token)
+
+        while token.type == COMMA:
+            print("Eating comma")
+            self.eat(COMMA)
+            print_root.children.append(self.Pitem())
+            token = self.current_token
+        
+        return print_root
+
+    def Pitem(self):
+        """
+            Pitem : Exp
+        """
+        print("(Pitem)")
+        
+        return PrintItem(self.Exp())
+
     def Eb(self):
         """
             Eb : PLUS Eb
@@ -173,6 +206,12 @@ class Parser(object):
             Term: Eb ((MUL | DIV) Eb)*
 
             Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+
+            Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
+
+            Pitem : Exp
+
+            Remark : REM (CHARACTER)*
         """
         print("*****************PARSE***********************")
         node = self.Program()

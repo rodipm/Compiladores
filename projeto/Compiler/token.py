@@ -1,4 +1,4 @@
-INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF= (
+INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT, COMMA = (
     'INTEGER',
     'PLUS',
     'MINUS',
@@ -10,7 +10,9 @@ INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF= (
     'LET',
     'ID',
     'REM',
-    'EOF'
+    'EOF',
+    'PRINT',
+    'COMMA',
 )
 
 class Token(object):
@@ -32,4 +34,5 @@ class Token(object):
 RESERVED_KEYWORDS = {
     'LET':Token('LET', 'LET'),
     'REM':Token('REM', 'REM'),
+    'PRINT':Token('PRINT', 'PRINT')
 }

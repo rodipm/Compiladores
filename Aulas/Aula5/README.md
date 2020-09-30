@@ -311,16 +311,29 @@ A seguir mostra-se a sequencia de regras de formação (entre parêntesis) e tok
 100 LET f = a/2 + (b-3)*(b+2)
 
 
-(BStatement) -> INTEGER -> (Assign) -> LET -> (Var) -> ID -> -> EQUAL-> (Exp)-> (Term) -> (Eb) -> (Var) -> ID-> -> DIV -> (Eb) -> INTEGER -> -> PLUS -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> MINUS -> (Term) (Eb) -> INTEGER -> -> RPAREN -> -> MUL -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN
+(BStatement) -> INTEGER -> (Assign) -> LET -> (Var) -> ID -> -> EQUAL-> 
+(Exp)-> (Term) -> (Eb) -> (Var) -> ID-> -> DIV -> (Eb) -> INTEGER -> 
+-> PLUS -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> 
+ID -> -> MINUS -> (Term) (Eb) -> INTEGER -> -> RPAREN -> -> MUL -> (Eb) -> 
+LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> PLUS -> (Term) -> 
+(Eb) -> INTEGER -> -> RPAREN
 
 
 110 LET g = (((b)) * (2 - c))
 
-(BStatement) ->INTEGER-> (Assign) -> LET -> (Var) -> ID -> -> EQUAL -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) ->(Eb) -> -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> RPAREN -> -> RPAREN -> -> MUL -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> INTEGER -> -> MINUS -> (Term) -> (Eb) -> (Var) -> ID -> -> RPAREN -> -> RPAREN
+(BStatement) ->INTEGER-> (Assign) -> LET -> (Var) -> ID -> -> EQUAL -> 
+(Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> LPAREN -> 
+(Exp) -> (Term) ->(Eb) -> -> LPAREN -> (Exp) -> (Term) -> (Eb) -> (Var) -> 
+ID -> -> RPAREN -> -> RPAREN -> -> MUL -> (Eb) -> LPAREN -> (Exp) -> (Term) -> 
+(Eb) -> INTEGER -> -> MINUS -> (Term) -> (Eb) -> (Var) -> ID -> -> RPAREN -> -> RPAREN
 
 120 LET h = b + ((1+1) + 1)
 
-(BStatement) ->INTEGER-> (Assign) -> LET -> (Var) -> ID -> -> EQUAL -> (Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> PLUS -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> INTEGER -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN
+(BStatement) ->INTEGER-> (Assign) -> LET -> (Var) -> ID -> -> EQUAL -> 
+(Exp) -> (Term) -> (Eb) -> (Var) -> ID -> -> PLUS -> (Term) -> (Eb) -> 
+LPAREN -> (Exp) -> (Term) -> (Eb) -> LPAREN -> (Exp) -> (Term) -> (Eb) -> 
+INTEGER -> -> PLUS -> (Term) -> (Eb) -> INTEGER -> -> RPAREN -> -> PLUS -> 
+(Term) -> (Eb) -> INTEGER -> -> RPAREN
 
 ```
 

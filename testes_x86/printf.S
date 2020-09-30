@@ -34,37 +34,7 @@ call	___main
 	movl	$-6 ,%edx
 	movl	%edx, _a
 	
-	movl	$0, %eax
-	movl	$10 ,%edx
-	movl	%edx, _b
-	
-	movl	$0, %eax
-	
-	movl	_a, %eax
-	movl	_b,%edx
-	addl	%edx, %eax
-	
-	movl	%eax, %edx
-	movl	%edx, (%esp)
-	call	_print
-	movl	$0, %eax
-	movl	$0, %eax
-	
-	movl	_a, %eax
-	movl	_b,%edx
-	subl	%edx, %eax
-	
-	movl	%eax, %edx
-	movl	%edx, (%esp)
-	call	_print
-	movl	$0, %eax
-	movl	$0, %eax
-	
-	movl	_b, %eax
-	movl	_a,%edx
-	subl	%edx, %eax
-	
-	movl	%eax, %edx
+	movl	-_a, %edx
 	movl	%edx, (%esp)
 	call	_print
 	movl	$0, %eax

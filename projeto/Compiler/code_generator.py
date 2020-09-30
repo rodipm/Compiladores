@@ -101,9 +101,9 @@ class CodeGenerator(NodeVisitor):
     def visit_UnaryOp(self, node):
         op = node.op.type
         if op == PLUS:
-            return +self.visit(node.expr)
+            return str(int(self.visit(node.expr)))
         if op == MINUS:
-            return -self.visit(node.expr)
+            return "$" + str(-1*int(self.visit(node.expr)[1:]))
 
     def visit_StatementList(self, node):
         child_code = []
@@ -119,7 +119,7 @@ class CodeGenerator(NodeVisitor):
         value = self.visit(node.right)
         self.GLOBAL_SCOPE[var_name] = value
 
-        if node.right.__class__.__name__ in ["Var", "Num"]:
+        if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
             return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
         else:
             return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
@@ -135,22 +135,44 @@ class CodeGenerator(NodeVisitor):
     def visit_NoOp(self, node):
         pass
 
+    def visit_PrintStatement(self, node):
+        print("VISIT PRINT STATEMENT")
+        child_code = []
+        for child in node.children:
+            if child.__class__.__name__ != "NoOp":
+                child_code.append(self.visit(child))
+
+        child_code = list(filter(lambda x: x != None, child_code))
+        return '\n'.join(child_code)
+
+    def visit_PrintItem(self, node):
+        if node.token.__class__.__name__ in ["Var", "Num"]:
+            val = self.visit(node.token)
+            return f"movl\t{val}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+        else:
+            exp = self.visit(node.token)
+            return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+
     def generate(self):
         tree = self.parser.parse()
         if tree is None:
             return ''
         self.visit(tree)
 
+        # prinf
+        asm_code = "\t.section\t.rdata,\"dr\"\nLC0:\n.ascii\t\"%d\\12\\0\"\n"
+
         # Variaveis
-        asm_code = "\t.data\n\n"
+        asm_code += "\t.data\n\n"
         asm_code += '\n'.join(map(lambda k: f".comm	_{k}, 4, 4", self.GLOBAL_SCOPE.keys())) + '\n'
 
         # Código
         asm_code += "\n\n.text\n\n"
-        asm_code += "\t.globl	_main\n_main:\n"
+        asm_code += ".globl\t_print\n_print:\npushl\t%ebp\nmovl\t%esp, %ebp\nsubl\t$24, %esp\nmovl\t8(%ebp), %eax\nmovl\t%eax, 4(%esp)\nmovl\t$LC0, (%esp)\ncall	_printf\nnop\nleave\nret\n\n"
 
+        asm_code += "\t.globl	_main\n_main:\npushl\t%ebp\nmovl\t%esp, %ebp\nandl\t$-16, %esp\nsubl\t$16, %esp\ncall	___main\n"
         asm_code += ''.join(list(map(lambda x: '\t' + x + '\n', self.generated_code.split('\n'))))
 
-        asm_code += "\tret\n"
+        asm_code += "\tleave\nret\n"
 
         return asm_code

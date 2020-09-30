@@ -95,6 +95,9 @@ class Lexer(object):
             if self.current_char == ')':
                 self.advance()
                 return Token(RPAREN, ')')
+            if self.current_char == ',':
+                self.advance()
+                return Token(COMMA, ',')
             self.error(self.current_char)
 
         return Token(EOF, None)

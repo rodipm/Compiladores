@@ -44,6 +44,15 @@ class Var(AST):
         self.token = token
         self.value = token.value
 
+class PrintStatement(AST):
+    __doc__ = 'Representação de um comando de PRINT'
+    def __init__(self):
+        self.children = []
+
+class PrintItem(AST):
+    __doc__ = 'Representação de um item de PRINT'
+    def __init__(self, token):
+        self.token = token
 
 class NoOp(AST):
     pass
