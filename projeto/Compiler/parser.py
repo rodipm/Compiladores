@@ -41,7 +41,7 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | PRINT | Remark
+            BStatement : INTEGER Assign | PRINT | If | Remark
         """
         print("(BStatement)")
         node = None
@@ -51,6 +51,8 @@ class Parser(object):
             node = self.Assign()
         elif self.current_token.type == REM:
             node = self.Remark()
+        elif self.current_token.type == IF:
+            node = self.If()
         elif self.current_token.type == PRINT:
             node = self.Print()
         return node
@@ -186,6 +188,34 @@ class Parser(object):
         node = self.Var()
         return node
 
+    def If(self):
+        """
+            If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
+        """
+        print("(IF)")
+        self.eat(IF)
+        left_exp = self.Exp()
+
+        token = self.current_token
+        operator = None
+        if token.type == EQ:
+            self.eat(EQ)
+            print("IS EQ")
+        operator = token
+        print("OPERATOR = ", operator)
+
+        right_exp = self.Exp()
+
+        self.eat(THEN)
+
+        token = self.current_token
+        line = None
+        if token.type == INTEGER:
+            line = token.value
+            self.eat(INTEGER)
+        
+        return IfStatement(left_exp, operator, right_exp, line)
+
     def Remark(self):
         self.eat(REM)
         self.eat(ID) # sequencia de caracteres
@@ -210,6 +240,8 @@ class Parser(object):
             Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
 
             Pitem : Exp
+
+            If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
 
             Remark : REM (CHARACTER)*
         """

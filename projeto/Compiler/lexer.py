@@ -87,8 +87,15 @@ class Lexer(object):
                 self.advance()
                 return Token(DIV, '/')
             if self.current_char == '=':
-                self.advance()
-                return Token(EQUAL, '=')
+                _t = None
+                if self.peek() == '=':
+                    _t = Token(EQ, '==')
+                    self.advance()
+                    self.advance()
+                else:
+                    _t = Token(EQUAL, '=')
+                    self.advance()
+                return _t
             if self.current_char == '(':
                 self.advance()
                 return Token(LPAREN, '(')

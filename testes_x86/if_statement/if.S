@@ -1,16 +1,13 @@
-	.section	.rdata,"dr"
+	.section	.rodata
 LC0:
-.ascii	"%d\12\0"
+	.string	"%d\n"
 	.data
-
-
-
 
 .text
 
 .globl	_print
 _print:
-pushl	%ebp
+pushq	%rbp
 movl	%esp, %ebp
 subl	$24, %esp
 movl	8(%ebp), %eax
@@ -21,14 +18,8 @@ nop
 leave
 ret
 
-	.globl	_main
-_main:
-pushl	%ebp
-movl	%esp, %ebp
-andl	$-16, %esp
-subl	$16, %esp
-call	___main
-	
+	.globl	main
+main:
 	movl	$0, %eax
 	
 	movl	$5, %eax
