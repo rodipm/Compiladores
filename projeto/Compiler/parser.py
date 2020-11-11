@@ -41,19 +41,29 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | PRINT | Remark
+            BStatement : INTEGER Assign | PRINT | GOTO | Remark
         """
         print("(BStatement)")
         node = None
+
+        line_number = self.current_token.value
+        print("Line Number: ", line_number)
+
         self.eat(INTEGER)
         print("->INTEGER->")
+
         if self.current_token.type == LET:
             node = self.Assign()
+        elif self.current_token.type == GOTO or self.current_token.type == GO:
+            node = self.Goto()
         elif self.current_token.type == REM:
             node = self.Remark()
         elif self.current_token.type == PRINT:
             node = self.Print()
-        return node
+
+        base_statement = BaseStatement(line_number, node)
+
+        return base_statement
 
     def Assign(self):
         """
@@ -186,6 +196,29 @@ class Parser(object):
         node = self.Var()
         return node
 
+    def Goto(self):
+        """
+            Goto : (GOTO | GO TO) Integer
+        """
+        print("Goto")
+        token = self.current_token
+        print(token)
+        if token.type == GOTO:
+            self.eat(GOTO)
+            print("(GOTO)")
+
+        elif token.type == GO:
+            self.eat(GO)
+            print("(GO)")
+            self.eat(TO)
+            print("(TO)")
+
+        integer_token = self.current_token
+        self.eat(INTEGER)
+        print("->INTEGER->")
+
+        return GotoStatement(integer_token.value)
+
     def Remark(self):
         self.eat(REM)
         self.eat(ID) # sequencia de caracteres
@@ -210,6 +243,8 @@ class Parser(object):
             Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
 
             Pitem : Exp
+
+            Goto : (GOTO | GO TO) Integer
 
             Remark : REM (CHARACTER)*
         """

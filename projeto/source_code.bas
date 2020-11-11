@@ -1,1 +1,7 @@
 10 LET a = -7
+20 LET b = 10
+30 LET c = 0
+40 GOTO 50
+50 PRINT a
+60 PRINT b
+70 PRINT c

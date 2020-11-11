@@ -107,10 +107,14 @@ class CodeGenerator(NodeVisitor):
         child_code = []
         for child in node.children:
             if child.__class__.__name__ != "NoOp":
-                child_code.append("\nmovl\t$0, %eax\n" + self.visit(child))
+                line_number, visited = self.visit(child)
+                child_code.append("\nlabel_" + str(line_number) + ":\nmovl\t$0, %eax\n" + visited)
 
         child_code = list(filter(lambda x: x != None, child_code))
         self.generated_code += ''.join(child_code)
+
+    def visit_BaseStatement(self, node):
+        return node.line_number, self.visit(node.node)
 
     def visit_Assign(self, node):
         var_name = node.left.value
@@ -150,6 +154,10 @@ class CodeGenerator(NodeVisitor):
         else:
             exp = self.visit(node.token)
             return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+
+    def visit_GotoStatement(self, node):
+        label_name = "label_" + str(node.destination_line)
+        return f"jmp {label_name}\n"
 
     def generate(self):
         tree = self.parser.parse()
