@@ -2,7 +2,7 @@
 
 ## Rodrigo Perrucci Macharelli - 9348877
 
-# Projeto: Implementação de um compilador simples de Basic
+# Projeto: Implementação de um compilador simples do Dartmouth Basic
 
 ## Definindo a gramática
 

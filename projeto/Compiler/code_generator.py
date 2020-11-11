@@ -93,8 +93,6 @@ class CodeGenerator(NodeVisitor):
 
         return result_code
 
-
-
     def visit_Num(self, node):
         return f"${node.value}"
 
