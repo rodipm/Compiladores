@@ -146,6 +146,10 @@ Print : PRINT
 
 Pitem : Exp
 
+Goto : (GOTO | GO TO) Integer
+
+If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
+
 Remark : REM (CHARACTER)*
 
 ID: letter(digit|letter)*

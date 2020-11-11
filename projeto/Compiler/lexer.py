@@ -96,6 +96,30 @@ class Lexer(object):
                     _t = Token(EQUAL, '=')
                     self.advance()
                 return _t
+            if self.current_char == '>':
+                _t = None
+                if self.peek() == '=':
+                    _t = Token(GTEQ, '>=')
+                    self.advance()
+                    self.advance()
+                else:
+                    _t = Token(GT, '>')
+                    self.advance()
+                return _t
+            if self.current_char == '<':
+                _t = None
+                if self.peek() == '=':
+                    _t = Token(LESSEQ, '<=')
+                    self.advance()
+                    self.advance()
+                elif self.peek() == '>':
+                    _t = Token(NOTEQ, '<>')
+                    self.advance()
+                    self.advance()
+                else:
+                    _t = Token(LESS, '<')
+                    self.advance()
+                return _t
             if self.current_char == '(':
                 self.advance()
                 return Token(LPAREN, '(')

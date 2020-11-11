@@ -220,9 +220,10 @@ class Parser(object):
         print("->INTEGER->")
 
         return GotoStatement(integer_token.value)
+
     def If(self):
         """
-            If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
+            If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
         """
         print("(IF)")
         self.eat(IF)
@@ -233,6 +234,22 @@ class Parser(object):
         if token.type == EQ:
             self.eat(EQ)
             print("IS EQ")
+        elif token.type == NOTEQ:
+            self.eat(NOTEQ)
+            print("IS NOTEQ")
+        elif token.type == GT:
+            self.eat(GT)
+            print("IS GT")
+        elif token.type == LESS:
+            self.eat(LESS)
+            print("IS LESS")
+        elif token.type == GTEQ:
+            self.eat(GTEQ)
+            print("IS GTEQ")
+        elif token.type == LESSEQ:
+            self.eat(LESSEQ)
+            print("IS LESSEQ")
+
         operator = token
         print("OPERATOR = ", operator)
 
@@ -241,12 +258,13 @@ class Parser(object):
         self.eat(THEN)
 
         token = self.current_token
-        line = None
+
+        destination_line = None
         if token.type == INTEGER:
-            line = token.value
+            destination_line = token.value
             self.eat(INTEGER)
         
-        return IfStatement(left_exp, operator, right_exp, line)
+        return IfStatement(left_exp, operator, right_exp, destination_line)
 
     def Remark(self):
         self.eat(REM)

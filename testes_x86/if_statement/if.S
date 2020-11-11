@@ -1,34 +1,43 @@
-	.section	.rodata
+	.file	"if.c"
+	.comm	_x, 4, 2
+	.comm	_y, 4, 2
+	.def	___main;	.scl	2;	.type	32;	.endef
+	.section .rdata,"dr"
 LC0:
-	.string	"%d\n"
-	.data
-
-.text
-
-.globl	_print
-_print:
-pushq	%rbp
-movl	%esp, %ebp
-subl	$24, %esp
-movl	8(%ebp), %eax
-movl	%eax, 4(%esp)
-movl	$LC0, (%esp)
-call	_printf
-nop
-leave
-ret
-
-	.globl	main
-main:
-	movl	$0, %eax
-	
-	movl	$5, %eax
-	movl	$1,%edx
-	addl	%edx, %eax
-	
-	movl	%eax, %edx
-	movl	%edx, (%esp)
-	call	_print
-	movl	$0, %eax
+	.ascii "%d\12\0"
+	.text
+	.globl	_main
+	.def	_main;	.scl	2;	.type	32;	.endef
+_main:
+LFB10:
+	.cfi_startproc
+	pushl	%ebp
+	.cfi_def_cfa_offset 8
+	.cfi_offset 5, -8
+	movl	%esp, %ebp
+	.cfi_def_cfa_register 5
+	andl	$-16, %esp
+	subl	$16, %esp
+	call	___main
+	movl	$13, _x
+	movl	_x, %eax
+	cmpl	$12, %eax
+	jle	L2
+	movl	$5, _y
+	jmp	L3
+L2:
+	movl	$3, _y
+L3:
+	movl	_y, %eax
+	movl	%eax, 4(%esp)
+	movl	$LC0, (%esp)
+	call	_printf
+	movl	_y, %eax
 	leave
-ret
+	.cfi_restore 5
+	.cfi_def_cfa 4, 4
+	ret
+	.cfi_endproc
+LFE10:
+	.ident	"GCC: (MinGW.org GCC-6.3.0-1) 6.3.0"
+	.def	_printf;	.scl	2;	.type	32;	.endef

@@ -3,6 +3,10 @@ LC0:
 .ascii	"%d\12\0"
 	.data
 
+.comm	_a, 4, 4
+.comm	_b, 4, 4
+.comm	_c, 4, 4
+.comm	_d, 4, 4
 
 
 .text
@@ -30,14 +34,64 @@ call	___main
 	
 	label_10:
 	movl	$0, %eax
+	movl	$10 ,%edx
+	movl	%edx, _a
 	
-	movl	$5, %eax
-	movl	$1,%edx
+	label_20:
+	movl	$0, %eax
+	movl	$10 ,%edx
+	movl	%edx, _b
+	
+	label_30:
+	movl	$0, %eax
+	movl	$5 ,%edx
+	movl	%edx, _c
+	
+	label_40:
+	movl	$0, %eax
+	movl	$15 ,%edx
+	movl	%edx, _d
+	
+	label_100:
+	movl	$0, %eax
+	movl	_a, %eax
+	movl	_b,%edx
 	addl	%edx, %eax
 	
-	label_50:
+	addl	_c, %eax
+	
+	movl	%eax, %ecx
+	movl	$2, %edx
+	imul	%ecx, %edx
+	movl	%edx, %eax
+	 movl %eax, %ecx
+	movl	$25, %ecx
+	movl	$2, %edx
+	imul	%ecx, %edx
+	movl	%edx, %eax
+	movl %eax, %edx
+	cmpl  %edx, %ecx
+	jne    label_300
+	
+	label_200:
 	movl	$0, %eax
-	movl	_a, %edx
+	movl	$200, %edx
+	movl	%edx, (%esp)
+	call	_print
+	movl	$0, %eax
+	label_210:
+	movl	$0, %eax
+	jmp label_500
+	
+	label_300:
+	movl	$0, %eax
+	movl	$300, %edx
+	movl	%edx, (%esp)
+	call	_print
+	movl	$0, %eax
+	label_500:
+	movl	$0, %eax
+	movl	$12345, %edx
 	movl	%edx, (%esp)
 	call	_print
 	movl	$0, %eax

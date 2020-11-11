@@ -155,16 +155,59 @@ class CodeGenerator(NodeVisitor):
             exp = self.visit(node.token)
             return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
 
+    def visit_GotoStatement(self, node):
+        label_name = "label_" + str(node.destination_line)
+        return f"jmp {label_name}\n"
+
     def visit_IfStatement(self, node):
         print("Visit IfStatement")
         left_exp = node.left_exp
         operator = node.operator
         right_exp = node.right_exp
-        line = node.line
+        destination_line = node.destination_line
+
+        expressions_code = ""
+
+        left_val = self.visit(left_exp)
+        right_val = self.visit(right_exp)
+
+        if (left_exp.__class__.__name__ in ["Num", "Var"]):
+            expressions_code += f"movl  {left_val}, %ecx\n"
+        else:
+            expressions_code += f"{left_val} movl %eax, %ecx\n"
+            
+
+        if (right_exp.__class__.__name__ in ["Num", "Var"]):
+            expressions_code += f"movl	{right_val}, %edx\n"
+        else:
+            expressions_code += f"{right_val}movl %eax, %edx\n"
+
+        conditional_type_code = ""
+
+        if operator.type == EQ:
+            conditional_type = "je"
+        elif operator.type == NOTEQ:
+            conditional_type = "jne"
+        elif operator.type == GT:
+            conditional_type = "jg"
+        elif operator.type == LESS:
+            conditional_type = "jl"
+        elif operator.type == GTEQ: 
+            conditional_type = "jge"
+        elif operator.type == LESSEQ:
+            conditional_type = "jle"
+
+        destination_label = f"label_{destination_line}"
+
+        expressions_code += f"cmpl  %edx, %ecx\n"
+        expressions_code += f"{conditional_type}    {destination_label}\n"
+
         print(left_exp)
         print(operator)
         print(right_exp)
-        print(line)
+        print(destination_line)
+        print(expressions_code)
+        return expressions_code
 
     def generate(self):
         tree = self.parser.parse()
