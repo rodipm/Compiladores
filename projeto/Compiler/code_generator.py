@@ -155,9 +155,16 @@ class CodeGenerator(NodeVisitor):
             exp = self.visit(node.token)
             return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
 
-    def visit_GotoStatement(self, node):
-        label_name = "label_" + str(node.destination_line)
-        return f"jmp {label_name}\n"
+    def visit_IfStatement(self, node):
+        print("Visit IfStatement")
+        left_exp = node.left_exp
+        operator = node.operator
+        right_exp = node.right_exp
+        line = node.line
+        print(left_exp)
+        print(operator)
+        print(right_exp)
+        print(line)
 
     def generate(self):
         tree = self.parser.parse()

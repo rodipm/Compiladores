@@ -63,6 +63,13 @@ class GotoStatement(AST):
     __doc__ = 'Representação de um comando de desvio GOTO'
     def __init__(self, destination_line):
         self.destination_line = destination_line
+class IfStatement(AST):
+    __doc__ = 'Representação de um IF statement'
+    def __init__(self, left_exp, operator, right_exp, line):
+        self.left_exp = left_exp
+        self.operator = operator
+        self.right_exp = right_exp
+        self.line = line
 
 class NoOp(AST):
     pass

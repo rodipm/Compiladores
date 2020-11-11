@@ -3,7 +3,8 @@
 int var1 = 5;
 int var2;
 
-int main() {
+int main()
+{
     var2 = 6;
-    return (var1 + var2 - 3) * 2 ;
+    return (var1 + var2 - 3) * 2;
 }

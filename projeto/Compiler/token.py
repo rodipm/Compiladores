@@ -1,4 +1,4 @@
-INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT, COMMA, GOTO, GO, TO = (
+INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT, COMMA, GOTO, GO, TO, IF, THEN, EQ = (
     'INTEGER',
     'PLUS',
     'MINUS',
@@ -16,6 +16,9 @@ INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT,
     'GOTO',
     'GO',
     'TO'
+    'IF',
+    'THEN',
+    '=='
 )
 
 class Token(object):
@@ -41,4 +44,6 @@ RESERVED_KEYWORDS = {
     'GOTO': Token('GOTO', 'GOTO'),
     'GO': Token('GO', 'GO'),
     'TO': Token('TO', 'TO')
+    'IF':Token('IF', 'IF'),
+    'THEN':Token('THEN', 'THEN')
 }
