@@ -35,7 +35,7 @@ Pitem : Exp | QUOTES CHARACTER(CHARACTER)* QUOTES (Exp)*
 
 Goto : (GOTO | GO TO) Integer
 
-If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
+If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
 
 For : FOR ID EQUAL Exp TO Exp | FOR ID EQUAL Exp TO Exp STEP Exp
 
@@ -68,10 +68,11 @@ ID: letter(digit|letter)*
 + MUL *
 + DIV /
 + EQUAL =
-+ GRTEQL >=
-+ GRT >
-+ NOTEQL <>
-+ LESSEQL <=
++ EQ ==
++ GTEQ >=
++ GT >
++ NOTEQ <>
++ LESSEQ <=
 + LESS <
 + LPAREN (
 + RPAREN )
@@ -148,7 +149,11 @@ Pitem : Exp
 
 Goto : (GOTO | GO TO) Integer
 
-If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
+If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
+
+For : FOR ID EQUAL Exp TO Exp | FOR ID EQUAL Exp TO Exp STEP Exp
+
+Next : NEXT ID
 
 Remark : REM (CHARACTER)*
 

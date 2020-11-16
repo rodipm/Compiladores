@@ -41,13 +41,13 @@ class Assign(AST):
         self.token = self.op = op
         self.right = right
 
-
 class Var(AST):
     __doc__ = 'Representacao de uma variavel'
 
-    def __init__(self, token):
+    def __init__(self, token, scopes_list):
         self.token = token
         self.value = token.value
+        self.scopes_list = scopes_list
 
 class PrintStatement(AST):
     __doc__ = 'Representação de um comando de PRINT'
@@ -71,6 +71,23 @@ class IfStatement(AST):
         self.operator = operator
         self.right_exp = right_exp
         self.destination_line = destination_line
+
+class ForStatement(AST):
+    __doc__ = 'Representação de um FOR statement'
+    def __init__(self, line_number, inside_assign, end_exp, step_exp, loop_statements, next_statement):
+        self.line_number = line_number
+        self.inside_assign = inside_assign
+        self.end_exp = end_exp
+        self.step_exp = step_exp
+        self.loop_statements = loop_statements
+        self.next_statement = next_statement
+
+class NextStatement(AST):
+    __doc__ = 'Representação de um NEXT statement'
+    def __init__(self, line_number, scope_line, for_var):
+        self.line_number = line_number
+        self.scope_line = scope_line
+        self.for_var = for_var
 
 class NoOp(AST):
     pass

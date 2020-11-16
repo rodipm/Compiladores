@@ -6,6 +6,18 @@ class Parser(object):
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.get_next_token()
+        self.scopes = ["Global"]
+
+    def enter_scope(self, line_number):
+        self.scopes.append(str(line_number))
+
+    def exit_scope(self):
+        if self.current_scope() != "Global":
+            self.scopes = self.scopes[:-1]
+
+    def current_scope(self):
+        return self.scopes[-1]
+
 
     def error(self):
         raise Exception('Invalid syntax')
@@ -41,11 +53,11 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | PRINT | IF | GOTO | Remark
+            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | Remark 
         """
         print("(BStatement)")
         node = None
-
+        print(self.current_token)
         line_number = self.current_token.value
         print("Line Number: ", line_number)
 
@@ -60,6 +72,10 @@ class Parser(object):
             node = self.Remark()
         elif self.current_token.type == IF:
             node = self.If()
+        elif self.current_token.type == FOR:
+            node = self.For(line_number)
+        elif self.current_token.type == NEXT:
+            node = self.Next(line_number)
         elif self.current_token.type == PRINT:
             node = self.Print()
 
@@ -90,7 +106,7 @@ class Parser(object):
             Var : ID
         """
         print("(Var)")
-        node = Var(self.current_token)
+        node = Var(self.current_token, self.scopes[:])
         self.eat(ID)
         print("->ID->")
         return node
@@ -266,6 +282,67 @@ class Parser(object):
         
         return IfStatement(left_exp, operator, right_exp, destination_line)
 
+    def For(self, line_number):
+        """
+            For : (FOR VAR EQUAL Exp TO Exp | FOR ID EQUAL Exp TO Exp STEP Exp) BStatement* INT NEXT VAR
+        """
+        self.enter_scope(line_number)
+
+        print("(FOR)")
+        self.eat(FOR)
+
+        print("(VAR)")
+        for_var = self.Var()
+
+        print("(EQUAL)")
+        for_assign_token = self.current_token
+        self.eat(EQUAL)
+
+        print("(EXP)")
+        assign_exp = self.Exp()
+
+        inside_assign = Assign(for_var, for_assign_token, assign_exp)
+
+        print("(TO)")
+        self.eat(TO)
+
+        print("(EXP)")
+        end_exp = self.Exp()
+
+        step_exp = None
+
+        if self.current_token.type == "STEP":
+            print("(STEP)")
+            self.eat(STEP)
+
+            step_exp = self.Exp()
+
+        loop_statements = StatementList()
+        cur_statement = None
+        while self.current_token.type == INTEGER:
+            cur_statement = self.BStatement()
+            if cur_statement.node.__class__.__name__ == "NextStatement":
+                break
+            loop_statements.children.append(cur_statement)
+
+        next_statement = cur_statement
+
+        print("LOOP STATEMENTS")
+        print(loop_statements)
+        return ForStatement(line_number, inside_assign, end_exp, step_exp, loop_statements, next_statement)
+
+    def Next(self, line_number):
+        """
+            Next : NEXT VAR
+        """
+        print("(NEXT)")
+        self.eat(NEXT)
+        for_var = self.Var()
+
+        current_scope_line = self.current_scope()
+        self.exit_scope()
+        return NextStatement(line_number, current_scope_line, for_var)
+
     def Remark(self):
         self.eat(REM)
         self.eat(ID) # sequencia de caracteres
@@ -293,7 +370,9 @@ class Parser(object):
 
             Goto : (GOTO | GO TO) Integer
             
-            If : IF Exp (GRTEQL | GRT | NOTEQL | LESSEQL | LESS | EQUAL) Exp THEN INTEGER
+            If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
+            
+            For : (FOR VAR EQUAL Exp TO Exp | FOR VAR EQUAL Exp TO Exp STEP Exp) BStatement* NEXT VAR
 
             Remark : REM (CHARACTER)*
         """

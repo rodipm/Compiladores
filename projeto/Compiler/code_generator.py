@@ -12,11 +12,21 @@ class NodeVisitor(object):
 
 
 class CodeGenerator(NodeVisitor):
-    GLOBAL_SCOPE = {}
+    PROGRAM_SCOPE = {"Global": {}}
     generated_code = ''
 
     def __init__(self, parser):
         self.parser = parser
+
+    def visit_Num(self, node):
+        return f"${node.value}"
+
+    def visit_UnaryOp(self, node):
+        op = node.op.type
+        if op == PLUS:
+            return str(int(self.visit(node.expr)))
+        if op == MINUS:
+            return "$" + str(-1*int(self.visit(node.expr)[1:]))
 
     def visit_BinOp(self, node):
         left = self.visit(node.left)
@@ -93,16 +103,6 @@ class CodeGenerator(NodeVisitor):
 
         return result_code
 
-    def visit_Num(self, node):
-        return f"${node.value}"
-
-    def visit_UnaryOp(self, node):
-        op = node.op.type
-        if op == PLUS:
-            return str(int(self.visit(node.expr)))
-        if op == MINUS:
-            return "$" + str(-1*int(self.visit(node.expr)[1:]))
-
     def visit_StatementList(self, node):
         child_code = []
         for child in node.children:
@@ -117,9 +117,33 @@ class CodeGenerator(NodeVisitor):
         return node.line_number, self.visit(node.node)
 
     def visit_Assign(self, node):
+        print("Visit Assign")
+
         var_name = node.left.value
+        var_scopes_list = node.left.scopes_list
+
         value = self.visit(node.right)
-        self.GLOBAL_SCOPE[var_name] = value
+        
+        print(var_name, var_scopes_list, value)
+        # Verifica o escopo
+        if self.PROGRAM_SCOPE.get(var_scopes_list[-1]) is None:
+            # adiciona escopo
+            self.PROGRAM_SCOPE[var_scopes_list[-1]] = {}
+            scope = self.PROGRAM_SCOPE[var_scopes_list[-1]]
+
+        # Busca a variável no escopo atual e, caso falhe, nos escopos ateriores
+        is_new_var = True
+        for search_scope in var_scopes_list[::-1]:
+            if self.PROGRAM_SCOPE[search_scope].get(var_name) is not None:
+                if search_scope != "Global":
+                    var_name = var_name + "_" + search_scope
+                is_new_var = False
+                break
+            
+        if is_new_var:
+            self.PROGRAM_SCOPE[var_scopes_list[-1]][var_name] = value
+            if var_scopes_list[-1] != "Global":
+                var_name = var_name + "_" + var_scopes_list[-1]
 
         if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
             return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
@@ -127,12 +151,24 @@ class CodeGenerator(NodeVisitor):
             return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
 
     def visit_Var(self, node):
+        print("VISIT VAR")
         var_name = node.value
-        val = self.GLOBAL_SCOPE.get(var_name)
-        if val is None:
+        var_scope_line = node.scopes_list[-1]
+
+        found_var = False
+        for search_scope in node.scopes_list[::-1]:
+            if self.PROGRAM_SCOPE[search_scope].get(var_name) is not None:
+                if search_scope != "Global":
+                    var_name = var_name + "_" + search_scope
+                found_var = True
+                break
+        
+        # Verifica a variável
+        if found_var == False:
             raise NameError(repr(var_name))
         else:
             return "_" + str(var_name)
+
 
     def visit_NoOp(self, node):
         pass
@@ -209,6 +245,36 @@ class CodeGenerator(NodeVisitor):
         print(expressions_code)
         return expressions_code
 
+    def visit_ForStatement(self, node):
+        print("visit ForStatement")
+        line_number = node.line_number
+        inside_assign = node.inside_assign
+        end_exp = node.end_exp
+        step_exp = node.step_exp
+        loop_statements = node.loop_statements
+        next_statement = node.next_statement
+
+        for_assign_code = self.visit(inside_assign)
+        for_assign_code += f"jmp for_{line_number}_control\n"
+
+        for_body_code = f"for_{line_number}_body:\n"
+        if loop_statements:
+            for b_statement in loop_statements.children:
+                loop_line_number, visited = self.visit(b_statement)
+                for_body_code += "\nlabel_" + str(loop_line_number) + ":\nmovl\t$0, %eax\n" + visited
+
+        step_val = "$1"
+        if step_exp:
+            step_val = self.visit(step_exp)
+
+        for_body_code += f"\n\nmovl	{self.visit(next_statement.node.for_var)}, %eax\n"
+        for_body_code += f"addl	{step_val}, %eax\n"
+        for_body_code += f"movl	%eax, {self.visit(next_statement.node.for_var)}\n\n"
+
+        for_control_code = f"for_{line_number}_control:\nmovl   {self.visit(next_statement.node.for_var)}, %eax\ncmpl	{self.visit(end_exp)}, %eax\njle	for_{line_number}_body"
+
+        return for_assign_code + "\n" + for_body_code + "\n" + for_control_code + "\n"
+
     def generate(self):
         tree = self.parser.parse()
         if tree is None:
@@ -220,7 +286,11 @@ class CodeGenerator(NodeVisitor):
 
         # Variaveis
         asm_code += "\t.data\n\n"
-        asm_code += '\n'.join(map(lambda k: f".comm	_{k}, 4, 4", self.GLOBAL_SCOPE.keys())) + '\n'
+        for scope in self.PROGRAM_SCOPE.keys():
+            scope_suffix = ""
+            if scope != "Global":
+                scope_suffix = "_" + scope
+            asm_code += '\n'.join(map(lambda k: f".comm	_{k}{scope_suffix}, 4, 4", self.PROGRAM_SCOPE[scope].keys())) + '\n'
 
         # Código
         asm_code += "\n\n.text\n\n"
