@@ -4,7 +4,7 @@ LC0:
 	.data
 
 .comm	_X, 4, 4
-.comm	_I_100, 4, 4
+.comm	_J_200, 4, 4
 
 
 .text
@@ -35,36 +35,41 @@ call	___main
 	movl	$0 ,%edx
 	movl	%edx, _X
 	
-	label_100:
-	movl	$0, %eax
-	movl	$0 ,%edx
-	movl	%edx, _I_100
-	jmp for_100_control
-	
-	for_100_body:
-	
 	label_200:
 	movl	$0, %eax
-	movl	_I_100, %edx
-	movl	%edx, (%esp)
-	call	_print
+	movl	_X, %eax
+	movl	$1,%edx
+	addl	%edx, %eax
+	movl	%eax, _J_200
+	movl	_X, %eax
+	movl	$5,%edx
+	addl	%edx, %eax
+	
+	movl	%eax ,%ebx
+	movl	%ebx, (%esp)
+	
+	jmp for_200_control
+	
+	for_200_body:
+	
+	label_300:
 	movl	$0, %eax
+	movl	_X, %eax
+	movl	$1,%edx
+	addl	%edx, %eax
+	movl	%eax, _X
 	
-	movl	_I_100, %eax
-	addl	$5, %eax
-	movl	%eax, _I_100
+	
+	movl	_J_200, %eax
+	addl	$1, %eax
+	movl	%eax, _J_200
 	
 	
-	for_100_control:
-	movl   _I_100, %eax
-	cmpl	$20, %eax
-	jle	for_100_body
+	for_200_control:
+	movl   _J_200, %eax
+	movl  (%esp), %ebx
+	cmpl	%ebx, %eax
+	jle	for_200_body
 	
-	label_1000:
-	movl	$0, %eax
-	movl	_X, %edx
-	movl	%edx, (%esp)
-	call	_print
-	movl	$0, %eax
 	leave
 ret

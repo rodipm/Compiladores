@@ -157,7 +157,10 @@ class CodeGenerator(NodeVisitor):
 
         found_var = False
         for search_scope in node.scopes_list[::-1]:
-            if self.PROGRAM_SCOPE[search_scope].get(var_name) is not None:
+            scope = self.PROGRAM_SCOPE.get(search_scope)
+            if not scope:
+                continue
+            if scope.get(var_name) is not None:
                 if search_scope != "Global":
                     var_name = var_name + "_" + search_scope
                 found_var = True
@@ -247,6 +250,7 @@ class CodeGenerator(NodeVisitor):
 
     def visit_ForStatement(self, node):
         print("visit ForStatement")
+
         line_number = node.line_number
         inside_assign = node.inside_assign
         end_exp = node.end_exp
@@ -254,8 +258,14 @@ class CodeGenerator(NodeVisitor):
         loop_statements = node.loop_statements
         next_statement = node.next_statement
 
+        end_exp_code = ""
+        if end_exp.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+            end_exp_code = "movl\t" +  self.visit(end_exp) + " ,%ebx\n" + "movl	%ebx, (%esp)\n"
+        else:
+            end_exp_code =  self.visit(end_exp) + "\nmovl\t" + "%eax ,%ebx\n" + "movl	%ebx, (%esp)\n"
+
         for_assign_code = self.visit(inside_assign)
-        for_assign_code += f"jmp for_{line_number}_control\n"
+        for_assign_code += f"{end_exp_code}\njmp for_{line_number}_control\n"
 
         for_body_code = f"for_{line_number}_body:\n"
         if loop_statements:
@@ -267,11 +277,13 @@ class CodeGenerator(NodeVisitor):
         if step_exp:
             step_val = self.visit(step_exp)
 
+
+
         for_body_code += f"\n\nmovl	{self.visit(next_statement.node.for_var)}, %eax\n"
         for_body_code += f"addl	{step_val}, %eax\n"
         for_body_code += f"movl	%eax, {self.visit(next_statement.node.for_var)}\n\n"
 
-        for_control_code = f"for_{line_number}_control:\nmovl   {self.visit(next_statement.node.for_var)}, %eax\ncmpl	{self.visit(end_exp)}, %eax\njle	for_{line_number}_body"
+        for_control_code = f"for_{line_number}_control:\nmovl   {self.visit(next_statement.node.for_var)}, %eax\nmovl  (%esp), %ebx\ncmpl	%ebx, %eax\njle	for_{line_number}_body"
 
         return for_assign_code + "\n" + for_body_code + "\n" + for_control_code + "\n"
 
