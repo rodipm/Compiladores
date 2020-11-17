@@ -6,7 +6,8 @@ LC1:
 .ascii	"%d\0"
 	.data
 
-
+.comm	_Y, 4, 4
+.comm	_X, 8, 2
 
 
 .text
@@ -50,9 +51,41 @@ andl	$-16, %esp
 subl	$16, %esp
 call	___main
 	
+	label_5:
+	movl	$0, %eax
+	movl	$0 ,%edx
+	movl	%edx, _Y
+	
 	label_10:
 	movl	$0, %eax
-	movl	$-1, %edx
+	
+	label_20:
+	movl	$0, %eax
+	movl	$5 ,%edx
+	movl   _Y, %ebx
+	movl	%edx, _X(,%ebx,4)
+	
+	label_25:
+	movl	$0, %eax
+	movl	_Y, %eax
+	movl	$1,%edx
+	addl	%edx, %eax
+	movl	%eax, _Y
+	
+	label_30:
+	movl	$0, %eax
+	movl	$10 ,%edx
+	movl   _Y, %ebx
+	movl	%edx, _X(,%ebx,4)
+	
+	label_50:
+	movl	$0, %eax
+	
+	movl	_X+4, %eax
+	movl	_X+0,%edx
+	addl	%edx, %eax
+	
+	movl	%eax, %edx
 	movl	%edx, (%esp)
 	call	_print
 	movl	$0, %eax

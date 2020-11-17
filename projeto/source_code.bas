@@ -1,1 +1,6 @@
-10 PRINT -1
+05 LET Y = 0
+10 DIM X(2)
+20 LET X[Y] = 5
+25 LET Y = Y + 1
+30 LET X[Y] = 10
+50 PRINT X[1] + X[0]

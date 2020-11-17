@@ -13,6 +13,7 @@ class NodeVisitor(object):
 
 class CodeGenerator(NodeVisitor):
     PROGRAM_SCOPE = {"Global": {}}
+    ARRAY_DECLARATIONS = {}
     FUNCTION_DEFINITIONS = {}
 
     generated_code = ''
@@ -120,42 +121,59 @@ class CodeGenerator(NodeVisitor):
 
     def visit_Assign(self, node):
         print("Visit Assign")
-
-        var_name = node.left.value
+        print(node.left.value)
         var_scopes_list = node.left.scopes_list
+        var_name = node.left.value
 
         value = self.visit(node.right)
         
-        print(var_name, var_scopes_list, value)
-        # Verifica o escopo
-        if self.PROGRAM_SCOPE.get(var_scopes_list[-1]) is None:
-            # adiciona escopo
-            self.PROGRAM_SCOPE[var_scopes_list[-1]] = {}
-            scope = self.PROGRAM_SCOPE[var_scopes_list[-1]]
+        if node.left.value in self.ARRAY_DECLARATIONS:
+            print("ASSIGN ARR")
+            print(node.left.index_exp, var_scopes_list, value)
 
-        # Busca a variável no escopo atual e, caso falhe, nos escopos ateriores
-        is_new_var = True
-        for search_scope in var_scopes_list[::-1]:
-            if self.PROGRAM_SCOPE[search_scope].get(var_name) is not None:
-                if search_scope != "Global":
-                    var_name = var_name + "_" + search_scope
-                is_new_var = False
-                break
-            
-        if is_new_var:
-            self.PROGRAM_SCOPE[var_scopes_list[-1]][var_name] = value
-            if var_scopes_list[-1] != "Global":
-                var_name = var_name + "_" + var_scopes_list[-1]
+            indexig_code = ""
+            if node.left.index_exp.__class__.__name__ in ["Var"]:
+                indexig_code = f"movl   _{node.left.index_exp.value}, %ebx\n"
+            elif node.left.index_exp.__class__.__name__ in ["BinOp"]:
+                indexig_code = f"{self.visit(node.left.index_exp)}\nmovl   %eax, %ebx\n"
 
-        if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
-            return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
+            if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+                return "movl\t" +  str(value) + f" ,%edx\n{indexig_code}movl\t%edx, " + self.visit(node.left) + "\n"
+            else:
+                return str(value) + indexig_code + "movl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
         else:
-            return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
+            print("ASSIGN VAR NAME")
+            print(node.left.value, var_scopes_list, value)
+            # Verifica o escopo
+            if self.PROGRAM_SCOPE.get(var_scopes_list[-1]) is None:
+                # adiciona escopo
+                self.PROGRAM_SCOPE[var_scopes_list[-1]] = {}
+                scope = self.PROGRAM_SCOPE[var_scopes_list[-1]]
+
+            # Busca a variável no escopo atual e, caso falhe, nos escopos ateriores
+            is_new_var = True
+            for search_scope in var_scopes_list[::-1]:
+                if self.PROGRAM_SCOPE[search_scope].get(var_name) is not None:
+                    if search_scope != "Global":
+                        var_name = var_name + "_" + search_scope
+                    is_new_var = False
+                    break
+                
+            if is_new_var:
+                self.PROGRAM_SCOPE[var_scopes_list[-1]][var_name] = value
+                if var_scopes_list[-1] != "Global":
+                    var_name = var_name + "_" + var_scopes_list[-1]
+
+            if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+                return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
+            else:
+                return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
 
     def visit_Var(self, node):
         print("VISIT VAR")
         var_name = node.value
         var_scope_line = node.scopes_list[-1]
+        var_index_exp = node.index_exp
 
         found_var = False
         for search_scope in node.scopes_list[::-1]:
@@ -167,6 +185,18 @@ class CodeGenerator(NodeVisitor):
                     var_name = var_name + "_" + search_scope
                 found_var = True
                 break
+        
+
+        if var_index_exp:
+            print("VAR INDEX EXP")
+            print(var_index_exp, var_name)
+            if var_name in self.ARRAY_DECLARATIONS:
+                found_var = True
+                
+            if var_index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
+                var_name = var_name + f"+{var_index_exp.value*4}"
+            else:
+                var_name = var_name + f"(,%ebx,4)"
         
         # Verifica a variável
         if found_var == False:
@@ -358,6 +388,18 @@ class CodeGenerator(NodeVisitor):
 
         return fn_call_code
 
+
+    def visit_DimStatement(self, node):
+        print("visit visit_DimStatement")
+
+        array_var = node.arr_var
+        array_size = node.arr_size
+
+        for i in range(array_size):
+            self.ARRAY_DECLARATIONS[array_var.value] = array_size
+
+        return ""
+
     def generate(self):
         tree = self.parser.parse()
         if tree is None:
@@ -369,12 +411,19 @@ class CodeGenerator(NodeVisitor):
         asm_code += "\nLC1:\n.ascii\t\"%d\\0\"\n"
 
         # Variaveis
+        print("PROGRAM SCOPE")
+        print(self.PROGRAM_SCOPE)
         asm_code += "\t.data\n\n"
         for scope in self.PROGRAM_SCOPE.keys():
             scope_suffix = ""
             if scope != "Global":
                 scope_suffix = "_" + scope
             asm_code += '\n'.join(map(lambda k: f".comm	_{k}{scope_suffix}, 4, 4", self.PROGRAM_SCOPE[scope].keys())) + '\n'
+
+        # Arrays
+        for arr in self.ARRAY_DECLARATIONS.keys():
+            arr_size = self.ARRAY_DECLARATIONS[arr]
+            asm_code += f".comm	_{arr}, {4*arr_size}, 2\n"
 
         
         # Código

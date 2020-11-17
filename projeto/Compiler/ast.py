@@ -15,6 +15,11 @@ class Num(AST):
         self.token = token
         self.value = token.value
 
+class DimStatement(AST):
+    __doc__ = "Representacao de declaração de arrays"
+    def __init__(self, arr_var, arr_size):
+        self.arr_var = arr_var
+        self.arr_size = arr_size
 
 class UnaryOp(AST):
     __doc__ = "Representacao de operacoes unarias +/-"
@@ -44,10 +49,11 @@ class Assign(AST):
 class Var(AST):
     __doc__ = 'Representacao de uma variavel'
 
-    def __init__(self, token, scopes_list):
+    def __init__(self, token, scopes_list, index_exp=None):
         self.token = token
         self.value = token.value
         self.scopes_list = scopes_list
+        self.index_exp = index_exp
 
 class PrintStatement(AST):
     __doc__ = 'Representação de um comando de PRINT'

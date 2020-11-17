@@ -53,7 +53,7 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | DEF | READ | Remark 
+            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | DEF | READ | DIM | Remark 
         """
         print("(BStatement)")
         node = None
@@ -80,6 +80,8 @@ class Parser(object):
             node = self.Print()
         elif self.current_token.type == READ:
             node = self.Read()
+        elif self.current_token.type == DIM:
+            node = self.Dim()
         elif self.current_token.type == DEF:
             node = self.Def(line_number)
 
@@ -107,13 +109,24 @@ class Parser(object):
 
     def Var(self):
         """
-            Var : ID
+           Var : ID | ID [Exp (, Exp)*]
         """
         print("(Var)")
-        node = Var(self.current_token, self.scopes[:])
+        cur_token = self.current_token
         self.eat(ID)
         print("->ID->")
-        return node
+
+        index_exp = None
+        if self.current_token.type == OPENBRACKET:
+            print("(OPENBRACKET)")
+            self.eat(OPENBRACKET)
+
+            index_exp = self.Exp()
+
+            print("(CLOSEBRACKET)")
+            self.eat(CLOSEBRACKET)
+
+        return Var(cur_token, self.scopes[:], index_exp)
 
     def Exp(self):
         """
@@ -389,8 +402,6 @@ class Parser(object):
             Def : DEF FN ID LPAREN Var RPAREN EQUAL Exp
         """
 
-
-
         print("(DEF)")
         self.eat(DEF)
 
@@ -429,6 +440,28 @@ class Parser(object):
         self.eat(ID) # sequencia de caracteres
         return self.empty()
 
+    def Dim(self):
+        """
+            Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
+        """
+
+        print("(DIM)")
+        self.eat(DIM)
+
+        array_var = self.Var()
+
+        print("(LPAREN)")
+        self.eat(LPAREN)
+        
+        array_size = self.current_token.value
+        print("(INTEGER)")
+        self.eat(INTEGER)
+
+        print("(RPAREN)")
+        self.eat(RPAREN)
+
+        return  DimStatement(array_var, array_size)
+
     def parse(self):
         """
             Program : BStatement BStatement*
@@ -437,7 +470,7 @@ class Parser(object):
 
             Assign : LET Var = Exp
 
-            Var : ID
+            Var : ID | ID [Exp (, Exp)*]
 
             Exp: Term (PLUS|MINUS Term)*
 
@@ -459,6 +492,8 @@ class Parser(object):
 
             Def : DEF FN ID LPAREN ID RPAREN EQUAL Exp
 
+            Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
+            
             Remark : REM (CHARACTER)*
         """
         print("*****************PARSE***********************")
