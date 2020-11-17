@@ -37,7 +37,12 @@ class CodeGenerator(NodeVisitor):
 
         print('BinOp', node.op.type, left, right)
 
-        result_code = ""
+        arr_preparation_code = ""
+
+        if hasattr(node.left, "index_exp") and node.left.index_exp:
+            arr_preparation_code += f"\nmovl    {self.visit(node.left.index_exp)}, %ebx\n"
+        elif hasattr(node.right, "index_exp") and node.right.index_exp:
+            arr_preparation_code += f"\nmovl    {self.visit(node.right.index_exp)}, %ebx\n"
 
         if node.op.type in [PLUS, MINUS]:
             op_1 = ""
@@ -104,7 +109,7 @@ class CodeGenerator(NodeVisitor):
             result_code = op_1 + op_2 + opr
 
 
-        return result_code
+        return arr_preparation_code + result_code
 
     def visit_StatementList(self, node):
         child_code = []
@@ -127,6 +132,7 @@ class CodeGenerator(NodeVisitor):
         
         # Assign para arrays
         if node.left.value in self.ARRAY_DECLARATIONS:
+            print("ASSIG ARRAY ASSIGN ARRAY")
             indexig_code = ""
             if node.left.index_exp.__class__.__name__ in ["Var"]:
                 indexig_code = f"movl   _{node.left.index_exp.value}, %ebx\n"
@@ -136,7 +142,7 @@ class CodeGenerator(NodeVisitor):
             if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                 return "movl\t" +  str(value) + f" ,%edx\n{indexig_code}movl\t%edx, " + self.visit(node.left) + "\n"
             else:
-                return str(value) + indexig_code + "movl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
+                return "TESTE"+ str(value) + indexig_code + "movl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
 
         # Assign para variaveis
         else:
@@ -233,11 +239,11 @@ class CodeGenerator(NodeVisitor):
         return '\n'.join(child_code)
 
     def visit_PrintItem(self, node):
-        if node.token.index_exp:
+        if hasattr(node.token, 'index_exp') and node.token.index_exp:
             if node.token.index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
                 read_code = f"movl\t_{node.token.value}+{node.token.index_exp.value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
             else:
-                read_code = f"movl	{self.visit(node.token.index_exp)}, %eax\nmovl	_{node.token.value}(,%eax, 4), %eax\nmovl  %eax, (%esp)\ncall _print\n"
+                read_code = f"movl	{self.visit(node.token.index_exp)}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
             return read_code
         else: 
             if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:

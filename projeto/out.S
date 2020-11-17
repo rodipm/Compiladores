@@ -7,6 +7,8 @@ LC1:
 	.data
 
 .comm	_for_100_end_exp, 4, 4
+.comm	_SOMA, 4, 4
+.comm	_X, 4, 4
 .comm	_for_400_end_exp, 4, 4
 .comm	_I_100, 4, 4
 .comm	_J_400, 4, 4
@@ -88,11 +90,21 @@ call	___main
 	cmpl	%ebx, %eax
 	jle	for_100_body
 	
+	label_350:
+	movl	$0, %eax
+	movl	$0 ,%edx
+	movl	%edx, _SOMA
+	
+	label_360:
+	movl	$0, %eax
+	movl	$0 ,%edx
+	movl	%edx, _X
+	
 	label_400:
 	movl	$0, %eax
 	movl	$0 ,%edx
 	movl	%edx, _J_400
-	movl	$2 ,_for_400_end_exp
+	movl	$1 ,_for_400_end_exp
 	
 	jmp for_400_control
 	
@@ -100,9 +112,12 @@ call	___main
 	
 	label_500:
 	movl	$0, %eax
-	movl	_J_400, %eax
-	movl	_INPUTS(,%eax, 4), %eax
-	movl  %eax, (%esp)
+	movl	movl	_J_400, %eax
+	movl	$1,%edx
+	addl	%edx, %eax
+	, %ebx
+	movl	_INPUTS(,%ebx, 4), %ebx
+	movl  %ebx, (%esp)
 	call _print
 	
 	label_600:
