@@ -53,7 +53,7 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | Remark 
+            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | DEF | READ | Remark 
         """
         print("(BStatement)")
         node = None
@@ -78,6 +78,10 @@ class Parser(object):
             node = self.Next(line_number)
         elif self.current_token.type == PRINT:
             node = self.Print()
+        elif self.current_token.type == READ:
+            node = self.Read()
+        elif self.current_token.type == DEF:
+            node = self.Def(line_number)
 
         base_statement = BaseStatement(line_number, node)
 
@@ -149,6 +153,16 @@ class Parser(object):
 
         return node
 
+    def Read(self):
+        """
+            Read : READ Var
+        """
+        print("(READ)")
+        self.eat(READ)
+
+        read_var = self.Var()
+        return ReadStatement(read_var)
+
     def Print(self):
         """
             Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
@@ -174,11 +188,19 @@ class Parser(object):
 
     def Pitem(self):
         """
-            Pitem : Exp
+            Pitem : Exp | STRING
         """
         print("(Pitem)")
-        
+
+        # if self.current_token.type == STRING:
+        #     string_node = self.current_token
+        #     print("STRING NODE")
+        #     print(string_node)
+        #     self.eat(STRING)
+        #     return PrintItem(String(string_node.value))
+        # else:
         return PrintItem(self.Exp())
+
 
     def Eb(self):
         """
@@ -187,6 +209,7 @@ class Parser(object):
                   | INTEGER
                   | LPAREN Exp RPAREN
                   | Var
+                  | FN ID LPAREN Exp RPAREN
         """
         print("(Eb)")
         token = self.current_token
@@ -211,6 +234,24 @@ class Parser(object):
             self.eat(RPAREN)
             print("->RPAREN->")
             return node
+        if token.type == FN:
+            print("(FN)")
+            self.eat(FN)
+
+            function_name = self.current_token.value
+            self.eat(ID)
+            print("FUNCTION NAME FN CALL")
+            print(function_name)
+
+            self.eat(LPAREN)
+            print("->LPAREN->")
+
+            function_exp = self.Exp()
+
+            self.eat(RPAREN)
+            print("->RPAREN->")
+            return FnCallStatement(function_name, function_exp)
+
         node = self.Var()
         return node
 
@@ -343,6 +384,46 @@ class Parser(object):
         self.exit_scope()
         return NextStatement(line_number, current_scope_line, for_var)
 
+    def Def(self, line_number):
+        """
+            Def : DEF FN ID LPAREN Var RPAREN EQUAL Exp
+        """
+
+
+
+        print("(DEF)")
+        self.eat(DEF)
+
+        print("(FN)")
+        print(self.current_token)
+        self.eat(FN)
+
+        function_name = self.current_token.value
+        self.enter_scope(function_name)
+
+
+        print(self.current_token)
+        print("(ID)")
+        self.eat(ID)
+
+        print("(LPAREN)")
+        self.eat(LPAREN)
+
+        print("(VAR)")
+        function_var = self.Var()
+
+        print("(RPAREN)")
+        self.eat(RPAREN)
+        
+        print("(EQUAL)")
+        self.eat(EQUAL)
+
+        function_exp = self.Exp()
+
+        self.exit_scope()
+
+        return DefStatement(line_number, function_name, function_var, function_exp)
+
     def Remark(self):
         self.eat(REM)
         self.eat(ID) # sequencia de caracteres
@@ -352,7 +433,7 @@ class Parser(object):
         """
             Program : BStatement BStatement*
 
-            BStatement : INTEGER Assign
+            BStatement : INTEGER Assign | PRINT | GOTO | IF | FOR | NEXT | DEF | REMARK
 
             Assign : LET Var = Exp
 
@@ -362,7 +443,9 @@ class Parser(object):
 
             Term: Eb ((MUL | DIV) Eb)*
 
-            Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+            Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var | FN letter LPAREN Exp RPAREN
+
+            Read : READ Var
 
             Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
 
@@ -373,6 +456,8 @@ class Parser(object):
             If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
             
             For : (FOR VAR EQUAL Exp TO Exp | FOR VAR EQUAL Exp TO Exp STEP Exp) BStatement* NEXT VAR
+
+            Def : DEF FN ID LPAREN ID RPAREN EQUAL Exp
 
             Remark : REM (CHARACTER)*
         """

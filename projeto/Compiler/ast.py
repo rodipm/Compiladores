@@ -59,6 +59,11 @@ class PrintItem(AST):
     def __init__(self, token):
         self.token = token
 
+class ReadStatement(AST):
+    __doc__ = 'Representação do comando de leitura de dados via stdin'
+    def __init__(self, dest_var):
+        self.dest_var = dest_var
+
 class GotoStatement(AST):
     __doc__ = 'Representação de um comando de desvio GOTO'
     def __init__(self, destination_line):
@@ -89,5 +94,24 @@ class NextStatement(AST):
         self.scope_line = scope_line
         self.for_var = for_var
 
+class DefStatement(AST):
+    __doc__ = 'Representação de uma definição de funcao'
+    def __init__(self, line_number, function_name, function_var, function_exp):
+        self.line_number = line_number
+        self.function_name = function_name
+        self.function_var = function_var
+        self.function_exp = function_exp
+
+class FnCallStatement(AST):
+    __doc__ = 'Representação de uma chamada de funcao'
+    def __init__(self, function_name, function_exp):
+        self.function_name = function_name
+        self.function_exp = function_exp
+
+# class String(AST):
+#     __doc__ = 'Representação string'
+#     def __init__(self, function_name, function_exp):
+#         self.function_name = function_name
+#         self.function_exp = function_exp
 class NoOp(AST):
     pass

@@ -1,4 +1,4 @@
-INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT, COMMA, GOTO, GO, TO, IF, THEN, EQ, NOTEQ, GT, LESS, GTEQ, LESSEQ, FOR, TO, STEP, NEXT= (
+INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT, COMMA, GOTO, GO, TO, IF, THEN, EQ, NOTEQ, GT, LESS, GTEQ, LESSEQ, FOR, TO, STEP, NEXT, DEF, FN, READ, QUOTE, STRING= (
     'INTEGER',
     'PLUS',
     'MINUS',
@@ -27,7 +27,12 @@ INTEGER, PLUS, MINUS, MUL, DIV, EQUAL, LPAREN, RPAREN, LET, ID, REM, EOF, PRINT,
     "FOR",
     "TO",
     "STEP",
-    "NEXT"
+    "NEXT",
+    "DEF",
+    "FN",
+    "READ",
+    "\"",
+    "STRING"
 )
 
 class Token(object):
@@ -58,5 +63,8 @@ RESERVED_KEYWORDS = {
     'FOR':Token('FOR', 'FOR'),
     'TO':Token('TO', 'TO'),
     'STEP':Token('STEP', 'STEP'),
-    'NEXT':Token('NEXT', 'NEXT')
+    'NEXT':Token('NEXT', 'NEXT'),
+    'DEF':Token('DEF', 'DEF'),
+    'FN': Token('FN', 'FN'),
+    'READ': Token('READ', 'READ'),
 }

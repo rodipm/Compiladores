@@ -55,6 +55,9 @@ class Lexer(object):
         while self.current_char is not None and self.current_char.isalnum():
             result += self.current_char
             self.advance()
+            reserved = RESERVED_KEYWORDS.get(result)
+            if reserved:
+                return reserved
 
         token = RESERVED_KEYWORDS.get(result, Token(ID, result))
         return token

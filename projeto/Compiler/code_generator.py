@@ -13,6 +13,8 @@ class NodeVisitor(object):
 
 class CodeGenerator(NodeVisitor):
     PROGRAM_SCOPE = {"Global": {}}
+    FUNCTION_DEFINITIONS = {}
+
     generated_code = ''
 
     def __init__(self, parser):
@@ -176,6 +178,17 @@ class CodeGenerator(NodeVisitor):
     def visit_NoOp(self, node):
         pass
 
+    def visit_ReadStatement(self, node):
+        print("VISIT READ STATEMENT")
+        dest_var = node.dest_var
+        print(dest_var)
+        
+        dest_var_name = self.visit(dest_var)
+
+        read_code = f"movl  ${dest_var_name}, (%esp)\ncall _scan\n"
+
+        return read_code
+
     def visit_PrintStatement(self, node):
         print("VISIT PRINT STATEMENT")
         child_code = []
@@ -287,6 +300,59 @@ class CodeGenerator(NodeVisitor):
 
         return for_assign_code + "\n" + for_body_code + "\n" + for_control_code + "\n"
 
+    def visit_DefStatement(self, node):
+        print("visit DefStatement")
+
+        line_number = node.line_number
+        function_name = node.function_name
+        function_var = node.function_var
+        function_exp = node.function_exp
+
+        if function_name not in self.FUNCTION_DEFINITIONS.keys():
+            self.FUNCTION_DEFINITIONS[function_name] = ""
+        else:
+            raise NameError(repr(function_name))
+
+        print("function_var")
+        # Adiciona a variável no escopo da funcao
+        self.PROGRAM_SCOPE[function_name] = {}
+        self.PROGRAM_SCOPE[function_name][function_var.value] = "$0"
+
+        def_code = f".globl fn_{function_name}\nfn_{function_name}:\n"
+        def_code += f"movl	(%ebp), %eax\nmovl	%eax, {self.visit(function_var)}\n"
+
+        def_code += self.visit(function_exp)
+
+        def_code += "leave\nret\n"
+
+        print("DEF CODE")
+        print(def_code)
+        self.FUNCTION_DEFINITIONS[function_name] = def_code
+        return ""
+        
+    def visit_FnCallStatement(self, node):
+        print("visit FnCallStatement")
+
+        function_name = node.function_name
+        function_exp = node.function_exp
+
+        print(function_name)
+        print(self.FUNCTION_DEFINITIONS)
+        if function_name not in self.FUNCTION_DEFINITIONS.keys():
+            raise NameError(repr(function_name))
+
+        exp_code = ""
+        if function_exp.__class__.__name__ in ["Num"]:
+            exp_code += f"movl  {self.visit(function_exp)}, (%ebp)\n"
+        elif function_exp.__class__.__name__ in ["Var"]:
+            exp_code += f"movl {self.visit(function_exp)}, %eax\nmovl  %eax, (%ebp)\n"
+        else:
+            exp_code += f"{self.visit(function_exp)}\nmovl  %eax, (%ebp)\n"
+
+        fn_call_code = f"{exp_code}\ncall   fn_{function_name}\n"
+
+        return fn_call_code
+
     def generate(self):
         tree = self.parser.parse()
         if tree is None:
@@ -295,6 +361,7 @@ class CodeGenerator(NodeVisitor):
 
         # prinf
         asm_code = "\t.section\t.rdata,\"dr\"\nLC0:\n.ascii\t\"%d\\12\\0\"\n"
+        asm_code += "\nLC1:\n.ascii\t\"%d\\0\"\n"
 
         # Variaveis
         asm_code += "\t.data\n\n"
@@ -304,9 +371,21 @@ class CodeGenerator(NodeVisitor):
                 scope_suffix = "_" + scope
             asm_code += '\n'.join(map(lambda k: f".comm	_{k}{scope_suffix}, 4, 4", self.PROGRAM_SCOPE[scope].keys())) + '\n'
 
+        
         # Código
+
+        ## PRINT FUNCTION
         asm_code += "\n\n.text\n\n"
-        asm_code += ".globl\t_print\n_print:\npushl\t%ebp\nmovl\t%esp, %ebp\nsubl\t$24, %esp\nmovl\t8(%ebp), %eax\nmovl\t%eax, 4(%esp)\nmovl\t$LC0, (%esp)\ncall	_printf\nnop\nleave\nret\n\n"
+        asm_code += ".globl\t_print\n_print:\npushl\t%ebp\nmovl\t%esp, %ebp\nsubl\t$24, %esp\nmovl\t8(%ebp), %eax\nmovl\t%eax, 4(%esp)\nmovl\t$LC0, (%esp)\ncall	_printf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
+
+        ## SCAN FUNCTION
+        asm_code += ".globl	_scan\n_scan:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n"
+
+        # Declaração de funções
+        for fn_name in self.FUNCTION_DEFINITIONS:
+            asm_code += self.FUNCTION_DEFINITIONS[fn_name]
+
+        asm_code += "\n\n"
 
         asm_code += "\t.globl	_main\n_main:\npushl\t%ebp\nmovl\t%esp, %ebp\nandl\t$-16, %esp\nsubl\t$16, %esp\ncall	___main\n"
         asm_code += ''.join(list(map(lambda x: '\t' + x + '\n', self.generated_code.split('\n'))))
