@@ -7,6 +7,7 @@ LC1:
 	.data
 
 .comm	_X, 4, 4
+.comm	_S, 4, 4
 .comm	_for_200_end_exp, 4, 4
 .comm	_J_200, 4, 4
 
@@ -57,6 +58,11 @@ call	___main
 	movl	$0 ,%edx
 	movl	%edx, _X
 	
+	label_60:
+	movl	$0, %eax
+	movl	$0 ,%edx
+	movl	%edx, _S
+	
 	label_200:
 	movl	$0, %eax
 	movl	$0 ,%edx
@@ -67,12 +73,18 @@ call	___main
 	
 	for_200_body:
 	
+	label_250:
+	movl	$0, %eax
+	movl  $_X, (%esp)
+	call _scan
+	
 	label_300:
 	movl	$0, %eax
-	movl	_J_200, %edx
-	movl	%edx, (%esp)
-	call	_print
-	movl	$0, %eax
+	movl	_S, %eax
+	movl	_X,%edx
+	addl	%edx, %eax
+	movl	%eax, _S
+	
 	
 	movl	_J_200, %eax
 	addl	$1, %eax
@@ -85,5 +97,11 @@ call	___main
 	cmpl	%ebx, %eax
 	jle	for_200_body
 	
+	label_500:
+	movl	$0, %eax
+	movl	_S, %edx
+	movl	%edx, (%esp)
+	call	_print
+	movl	$0, %eax
 	leave
 ret
