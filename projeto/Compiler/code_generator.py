@@ -200,7 +200,7 @@ class CodeGenerator(NodeVisitor):
         return '\n'.join(child_code)
 
     def visit_PrintItem(self, node):
-        if node.token.__class__.__name__ in ["Var", "Num"]:
+        if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
             val = self.visit(node.token)
             return f"movl\t{val}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
         else:
@@ -347,7 +347,7 @@ class CodeGenerator(NodeVisitor):
             raise NameError(repr(function_name))
 
         exp_code = ""
-        if function_exp.__class__.__name__ in ["Num"]:
+        if function_exp.__class__.__name__ in ["Num", "UnaryOp"]:
             exp_code += f"movl  {self.visit(function_exp)}, (%ebp)\n"
         elif function_exp.__class__.__name__ in ["Var"]:
             exp_code += f"movl {self.visit(function_exp)}, %eax\nmovl  %eax, (%ebp)\n"
