@@ -6,8 +6,11 @@ LC1:
 .ascii	"%d\0"
 	.data
 
-.comm	_Y, 4, 4
-.comm	_X, 8, 2
+.comm	_for_100_end_exp, 4, 4
+.comm	_for_400_end_exp, 4, 4
+.comm	_I_100, 4, 4
+.comm	_J_400, 4, 4
+.comm	_INPUTS, 12, 2
 
 
 .text
@@ -51,43 +54,69 @@ andl	$-16, %esp
 subl	$16, %esp
 call	___main
 	
-	label_5:
-	movl	$0, %eax
-	movl	$0 ,%edx
-	movl	%edx, _Y
-	
 	label_10:
 	movl	$0, %eax
 	
-	label_20:
+	label_100:
 	movl	$0, %eax
-	movl	$5 ,%edx
-	movl   _Y, %ebx
-	movl	%edx, _X(,%ebx,4)
+	movl	$0 ,%edx
+	movl	%edx, _I_100
+	movl	$2 ,_for_100_end_exp
 	
-	label_25:
+	jmp for_100_control
+	
+	for_100_body:
+	
+	label_200:
 	movl	$0, %eax
-	movl	_Y, %eax
-	movl	$1,%edx
-	addl	%edx, %eax
-	movl	%eax, _Y
+	movl	_I_100, %eax
+	sall	$2, %eax
+	addl	$_INPUTS, %eax
+	movl  %eax, (%esp)
+	call _scan
 	
-	label_30:
+	label_300:
+	
+	movl	_I_100, %eax
+	addl	$1, %eax
+	movl	%eax, _I_100
+	
+	
+	for_100_control:
+	movl   _I_100, %eax
+	movl  _for_100_end_exp, %ebx
+	cmpl	%ebx, %eax
+	jle	for_100_body
+	
+	label_400:
 	movl	$0, %eax
-	movl	$10 ,%edx
-	movl   _Y, %ebx
-	movl	%edx, _X(,%ebx,4)
+	movl	$0 ,%edx
+	movl	%edx, _J_400
+	movl	$2 ,_for_400_end_exp
 	
-	label_50:
+	jmp for_400_control
+	
+	for_400_body:
+	
+	label_500:
 	movl	$0, %eax
+	movl	_J_400, %eax
+	movl	_INPUTS(,%eax, 4), %eax
+	movl  %eax, (%esp)
+	call _print
 	
-	movl	_X+4, %eax
-	movl	_X+0,%edx
-	addl	%edx, %eax
+	label_600:
 	
-	movl	%eax, %edx
-	movl	%edx, (%esp)
-	call	_print
-	movl	$0, %eax
+	movl	_J_400, %eax
+	addl	$1, %eax
+	movl	%eax, _J_400
+	
+	
+	for_400_control:
+	movl   _J_400, %eax
+	movl  _for_400_end_exp, %ebx
+	cmpl	%ebx, %eax
+	jle	for_400_body
+	
 	leave
 ret

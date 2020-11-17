@@ -120,17 +120,13 @@ class CodeGenerator(NodeVisitor):
         return node.line_number, self.visit(node.node)
 
     def visit_Assign(self, node):
-        print("Visit Assign")
-        print(node.left.value)
         var_scopes_list = node.left.scopes_list
         var_name = node.left.value
 
         value = self.visit(node.right)
         
+        # Assign para arrays
         if node.left.value in self.ARRAY_DECLARATIONS:
-            print("ASSIGN ARR")
-            print(node.left.index_exp, var_scopes_list, value)
-
             indexig_code = ""
             if node.left.index_exp.__class__.__name__ in ["Var"]:
                 indexig_code = f"movl   _{node.left.index_exp.value}, %ebx\n"
@@ -141,9 +137,9 @@ class CodeGenerator(NodeVisitor):
                 return "movl\t" +  str(value) + f" ,%edx\n{indexig_code}movl\t%edx, " + self.visit(node.left) + "\n"
             else:
                 return str(value) + indexig_code + "movl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
+
+        # Assign para variaveis
         else:
-            print("ASSIGN VAR NAME")
-            print(node.left.value, var_scopes_list, value)
             # Verifica o escopo
             if self.PROGRAM_SCOPE.get(var_scopes_list[-1]) is None:
                 # adiciona escopo
@@ -170,41 +166,44 @@ class CodeGenerator(NodeVisitor):
                 return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
 
     def visit_Var(self, node):
-        print("VISIT VAR")
         var_name = node.value
         var_scope_line = node.scopes_list[-1]
         var_index_exp = node.index_exp
 
-        found_var = False
-        for search_scope in node.scopes_list[::-1]:
-            scope = self.PROGRAM_SCOPE.get(search_scope)
-            if not scope:
-                continue
-            if scope.get(var_name) is not None:
-                if search_scope != "Global":
-                    var_name = var_name + "_" + search_scope
-                found_var = True
-                break
-        
-
+        # Arrays
         if var_index_exp:
             print("VAR INDEX EXP")
             print(var_index_exp, var_name)
-            if var_name in self.ARRAY_DECLARATIONS:
-                found_var = True
+            if var_name not in self.ARRAY_DECLARATIONS:
+                raise NameError(repr(var_name))
                 
             if var_index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
                 var_name = var_name + f"+{var_index_exp.value*4}"
             else:
                 var_name = var_name + f"(,%ebx,4)"
         
-        # Verifica a variável
-        if found_var == False:
-            raise NameError(repr(var_name))
-        else:
             return "_" + str(var_name)
 
-
+        # Variáveis normais
+        else: 
+            found_var = False
+            for search_scope in node.scopes_list[::-1]:
+                scope = self.PROGRAM_SCOPE.get(search_scope)
+                if not scope:
+                    continue
+                if scope.get(var_name) is not None:
+                    if search_scope != "Global":
+                        var_name = var_name + "_" + search_scope
+                    found_var = True
+                    break
+            
+            # Verifica a variável
+            if found_var == False:
+                raise NameError(repr(var_name))
+            else:
+                return "_" + str(var_name)
+        
+        
     def visit_NoOp(self, node):
         pass
 
@@ -213,11 +212,15 @@ class CodeGenerator(NodeVisitor):
         dest_var = node.dest_var
         print(dest_var)
         
-        dest_var_name = self.visit(dest_var)
+        if node.dest_var.index_exp:
+            read_code = f"movl	{self.visit(node.dest_var.index_exp)}, %eax\nsall	$2, %eax\naddl	$_{dest_var.value}, %eax\nmovl  %eax, (%esp)\ncall _scan\n"
+            return read_code
+        else: 
+            dest_var_name = self.visit(dest_var)
 
-        read_code = f"movl  ${dest_var_name}, (%esp)\ncall _scan\n"
+            read_code = f"movl  ${dest_var_name}, (%esp)\ncall _scan\n"
 
-        return read_code
+            return read_code
 
     def visit_PrintStatement(self, node):
         print("VISIT PRINT STATEMENT")
@@ -230,12 +233,19 @@ class CodeGenerator(NodeVisitor):
         return '\n'.join(child_code)
 
     def visit_PrintItem(self, node):
-        if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
-            val = self.visit(node.token)
-            return f"movl\t{val}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
-        else:
-            exp = self.visit(node.token)
-            return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+        if node.token.index_exp:
+            if node.token.index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
+                read_code = f"movl\t_{node.token.value}+{node.token.index_exp.value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+            else:
+                read_code = f"movl	{self.visit(node.token.index_exp)}, %eax\nmovl	_{node.token.value}(,%eax, 4), %eax\nmovl  %eax, (%esp)\ncall _print\n"
+            return read_code
+        else: 
+            if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+                val = self.visit(node.token)
+                return f"movl\t{val}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+            else:
+                exp = self.visit(node.token)
+                return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
 
     def visit_GotoStatement(self, node):
         label_name = "label_" + str(node.destination_line)
