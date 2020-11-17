@@ -7,7 +7,6 @@ LC1:
 	.data
 
 .comm	_X, 4, 4
-.comm	_S, 4, 4
 .comm	_for_200_end_exp, 4, 4
 .comm	_J_200, 4, 4
 
@@ -58,33 +57,40 @@ call	___main
 	movl	$0 ,%edx
 	movl	%edx, _X
 	
-	label_60:
-	movl	$0, %eax
-	movl	$0 ,%edx
-	movl	%edx, _S
-	
 	label_200:
 	movl	$0, %eax
 	movl	$0 ,%edx
 	movl	%edx, _J_200
-	movl	$3 ,_for_200_end_exp
+	movl	$4 ,_for_200_end_exp
 	
 	jmp for_200_control
 	
 	for_200_body:
 	
-	label_250:
+	label_205:
 	movl	$0, %eax
-	movl  $_X, (%esp)
-	call _scan
+	movl  _J_200, %ecx
+	movl	$2, %edx
+	cmpl  %edx, %ecx
+	jg    label_220
 	
-	label_300:
+	label_210:
 	movl	$0, %eax
-	movl	_S, %eax
-	movl	_X,%edx
-	addl	%edx, %eax
-	movl	%eax, _S
+	movl	_J_200, %edx
+	movl	%edx, (%esp)
+	call	_print
+	movl	$0, %eax
+	label_215:
+	movl	$0, %eax
+	jmp label_400
 	
+	label_220:
+	movl	$0, %eax
+	movl	$555, %edx
+	movl	%edx, (%esp)
+	call	_print
+	movl	$0, %eax
+	label_400:
 	
 	movl	_J_200, %eax
 	addl	$1, %eax
@@ -99,7 +105,7 @@ call	___main
 	
 	label_500:
 	movl	$0, %eax
-	movl	_S, %edx
+	movl	$12345531, %edx
 	movl	%edx, (%esp)
 	call	_print
 	movl	$0, %eax

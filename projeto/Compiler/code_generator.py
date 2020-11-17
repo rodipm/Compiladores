@@ -297,7 +297,7 @@ class CodeGenerator(NodeVisitor):
             step_val = self.visit(step_exp)
 
 
-        for_body_code += f"\n\nmovl	{self.visit(next_statement.node.for_var)}, %eax\n"
+        for_body_code += f"\nlabel_{next_statement.line_number}:\n\nmovl	{self.visit(next_statement.node.for_var)}, %eax\n"
         for_body_code += f"addl	{step_val}, %eax\n"
         for_body_code += f"movl	%eax, {self.visit(next_statement.node.for_var)}\n\n"
 
