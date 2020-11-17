@@ -271,11 +271,17 @@ class CodeGenerator(NodeVisitor):
         loop_statements = node.loop_statements
         next_statement = node.next_statement
 
+        # Adiciona a variável no escopo da funcao
+        for_end_exp_var_name = f"for_{line_number}_end_exp"
+        self.PROGRAM_SCOPE["Global"][for_end_exp_var_name] = "$0"
+
         end_exp_code = ""
         if end_exp.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
-            end_exp_code = "movl\t" +  self.visit(end_exp) + " ,%ebx\n" + "movl	%ebx, (%esp)\n"
+            # end_exp_code = "movl\t" +  self.visit(end_exp) + " ,%ebx\n" + "movl	%ebx, (%esp)\n"
+            end_exp_code = "movl\t" +  self.visit(end_exp) + f" ,_{for_end_exp_var_name}\n"
         else:
-            end_exp_code =  self.visit(end_exp) + "\nmovl\t" + "%eax ,%ebx\n" + "movl	%ebx, (%esp)\n"
+            # end_exp_code =  self.visit(end_exp) + "\nmovl\t" + "%eax ,%ebx\n" + "movl	%ebx, (%esp)\n"
+            end_exp_code =  self.visit(end_exp) + "\nmovl\t" + f"%eax ,_{for_end_exp_var_name}\n"
 
         for_assign_code = self.visit(inside_assign)
         for_assign_code += f"{end_exp_code}\njmp for_{line_number}_control\n"
@@ -291,12 +297,11 @@ class CodeGenerator(NodeVisitor):
             step_val = self.visit(step_exp)
 
 
-
         for_body_code += f"\n\nmovl	{self.visit(next_statement.node.for_var)}, %eax\n"
         for_body_code += f"addl	{step_val}, %eax\n"
         for_body_code += f"movl	%eax, {self.visit(next_statement.node.for_var)}\n\n"
 
-        for_control_code = f"for_{line_number}_control:\nmovl   {self.visit(next_statement.node.for_var)}, %eax\nmovl  (%esp), %ebx\ncmpl	%ebx, %eax\njle	for_{line_number}_body"
+        for_control_code = f"for_{line_number}_control:\nmovl   {self.visit(next_statement.node.for_var)}, %eax\nmovl  _{for_end_exp_var_name}, %ebx\ncmpl	%ebx, %eax\njle	for_{line_number}_body"
 
         return for_assign_code + "\n" + for_body_code + "\n" + for_control_code + "\n"
 
