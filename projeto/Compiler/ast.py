@@ -17,9 +17,9 @@ class Num(AST):
 
 class DimStatement(AST):
     __doc__ = "Representacao de declaração de arrays"
-    def __init__(self, arr_var, arr_size):
+    def __init__(self, arr_var, arr_dims):
         self.arr_var = arr_var
-        self.arr_size = arr_size
+        self.arr_dims = arr_dims
 
 class UnaryOp(AST):
     __doc__ = "Representacao de operacoes unarias +/-"

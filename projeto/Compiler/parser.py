@@ -118,15 +118,24 @@ class Parser(object):
         self.consome(ID)
         print("->ID->")
 
-        index_exp = None
+        index_exp = []
         if self.current_token.type == OPENBRACKET:
             print("(OPENBRACKET)")
             self.consome(OPENBRACKET)
 
-            index_exp = self.Exp()
+            index_exp.append(self.Exp())
 
+            while self.current_token.type == COMMA:
+                print("(COMMA)")
+                sellf.consome(COMMA)
+
+                index_exp.append(self.Exp())
+            
             print("(CLOSEBRACKET)")
             self.consome(CLOSEBRACKET)
+
+        if len(index_exp) == 0:
+            index_exp = None
 
         return Var(cur_token, self.scopes[:], index_exp)
 
@@ -446,7 +455,7 @@ class Parser(object):
 
     def Dim(self):
         """
-            Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
+            Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN
         """
 
         print("(DIM)")
@@ -457,14 +466,24 @@ class Parser(object):
         print("(LPAREN)")
         self.consome(LPAREN)
         
-        array_size = self.current_token.value
+        array_dims = []
+        array_dims.append(self.current_token.value)
+
         print("(INTEGER)")
         self.consome(INTEGER)
+    	
+        while self.current_token.type == COMMA:
+            self.consome(COMMA)
+
+            array_dims.append(self.current_token.value)
+        
+            print("(INTEGER)")
+            self.consome(INTEGER)
 
         print("(RPAREN)")
         self.consome(RPAREN)
 
-        return  DimStatement(array_var, array_size)
+        return  DimStatement(array_var, array_dims)
 
     def Return(self):
         """
@@ -492,7 +511,7 @@ class Parser(object):
 
             Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
 
-            Pitem : Exp
+            Pitem : Exp | STRING
 
             Goto : (GOTO | GO TO) Integer
             

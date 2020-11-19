@@ -4,11 +4,10 @@ LC0:
 
 LC1:
 .ascii	"%d\0"
-_string_0:
-.ascii	"OI\0"
 	.data
 
-.comm	_X, 4, 4
+
+.comm	_X, 12, 2
 
 
 .text
@@ -64,19 +63,19 @@ andl	$-16, %esp
 subl	$16, %esp
 call	___main
 	
-	label_1:
+	label_10:
 	movl	$0, %eax
-	movl	$4 ,%edx
-	movl	%edx, _X
 	
 	label_20:
 	movl	$0, %eax
-	jmp label_30
+	movl	$1 ,%edx
+	movl	%edx, _X(,%ebx,4)
 	
 	label_30:
 	movl	$0, %eax
-	movl	$_string_0,(%esp)
-	call	_print_string
+	movl	_X+0, %edx
+	movl	%edx, (%esp)
+	call	_print
 	movl	$0, %eax
 	leave
 ret

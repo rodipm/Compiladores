@@ -254,12 +254,12 @@ class CodeGenerator(NodeVisitor):
     def visit_PrintItem(self, node):
         # Arrays
         if hasattr(node.token, 'index_exp') and node.token.index_exp:
-            if node.token.index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
-                read_code = f"movl\t_{node.token.value}+{node.token.index_exp.value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+            if node.token.index_exp[0].__class__.__name__ in ["Num", "UnaryOp"]:
+                read_code = f"movl\t_{node.token.value}+{node.token.index_exp[0].value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
             else:
                 if node.token.value not in self.ARRAY_DECLARATIONS:
                     raise NameError(f"Array: {node.token.value} não definido.")
-                read_code = f"movl	{self.visit(node.token.index_exp)}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
+                read_code = f"movl	{self.visit(node.token.index_exp[0])}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
             return read_code
         # Strings
         elif node.token.__class__.__name__ == "String":
@@ -434,7 +434,7 @@ class CodeGenerator(NodeVisitor):
         print("visit visit_DimStatement")
 
         array_var = node.arr_var
-        array_size = node.arr_size
+        array_size = node.arr_dims[0]
 
         for i in range(array_size):
             self.ARRAY_DECLARATIONS[array_var.value] = array_size
@@ -466,8 +466,8 @@ class CodeGenerator(NodeVisitor):
 
         # Arrays
         for arr in self.ARRAY_DECLARATIONS.keys():
-            arr_size = self.ARRAY_DECLARATIONS[arr]
-            asm_code += f".comm	_{arr}, {4*arr_size}, 2\n"
+            arr_dims = self.ARRAY_DECLARATIONS[arr]
+            asm_code += f".comm	_{arr}, {4*arr_dims}, 2\n"
 
         
         # Código
