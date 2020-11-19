@@ -15,6 +15,7 @@ class CodeGenerator(NodeVisitor):
     VAR_DECLARATIONS = {"Global": {}}
     ARRAY_DECLARATIONS = {}
     FUNCTION_DEFINITIONS = {}
+    STRING_DECLARATIONS = []
 
     generated_code = ''
 
@@ -26,8 +27,6 @@ class CodeGenerator(NodeVisitor):
 
     def visit_UnaryOp(self, node):
         op = node.op.type
-        if op == PLUS:
-            return str(int(self.visit(node.expr)))
         if op == MINUS:
             return "$" + str(-1*int(self.visit(node.expr)[1:]))
 
@@ -105,16 +104,20 @@ class CodeGenerator(NodeVisitor):
                     op_2 = "movl\t" + right + ", %ecx\n"
                 elif hasattr(node.right, 'op'):
                     op_2 = right + "\n" + "movl\t" + "%eax, %ecx\n"
-
-            result_code = op_1 + op_2 + opr
+            
+            if hasattr(node.right, 'op'):
+                result_code = op_2 + op_1 + opr
+            else:
+                result_code = op_1 + op_2 + opr
 
 
         return arr_preparation_code + result_code
 
     def visit_StatementList(self, node):
         child_code = []
+        print(node.children)
         for child in node.children:
-            if child.__class__.__name__ != "NoOp":
+            if child.node.__class__.__name__ != "NoOp":
                 line_number, visited = self.visit(child)
                 child_code.append("\nlabel_" + str(line_number) + ":\nmovl\t$0, %eax\n" + visited)
 
@@ -134,7 +137,7 @@ class CodeGenerator(NodeVisitor):
         # Assign para arrays
         if node.left.index_exp is not None and node.left.value not in self.ARRAY_DECLARATIONS:
                 raise NameError(f"Array: {node.left.value} não definido.")
-            
+
         if node.left.value in self.ARRAY_DECLARATIONS:
             print("ASSIG ARRAY ASSIGN ARRAY")
             indexig_code = ""
@@ -222,17 +225,19 @@ class CodeGenerator(NodeVisitor):
         print("VISIT READ STATEMENT")
         dest_var = node.dest_var
         print(dest_var)
-        
-        if dest_var.value not in self.ARRAY_DECLARATIONS:
-            raise NameError(f"Array: {repr(dest_var.value)} não definido.")
 
-        if node.dest_var.index_exp:
-            read_code = f"movl	{self.visit(node.dest_var.index_exp)}, %eax\nsall	$2, %eax\naddl	$_{dest_var.value}, %eax\nmovl  %eax, (%esp)\ncall _scan\n"
+
+        # Array
+        if node.dest_var.index_exp:    
+            if dest_var.value not in self.ARRAY_DECLARATIONS:
+                raise NameError(f"Array: {repr(dest_var.value)} não definido.")
+
+            read_code = f"movl	{self.visit(node.dest_var.index_exp)}, %eax\nsall	$2, %eax\naddl	$_{dest_var.value}, %eax\nmovl  %eax, (%esp)\ncall _read\n"
             return read_code
         else: 
             dest_var_name = self.visit(dest_var)
 
-            read_code = f"movl  ${dest_var_name}, (%esp)\ncall _scan\n"
+            read_code = f"movl  ${dest_var_name}, (%esp)\ncall _read\n"
 
             return read_code
 
@@ -256,6 +261,15 @@ class CodeGenerator(NodeVisitor):
                     raise NameError(f"Array: {node.token.value} não definido.")
                 read_code = f"movl	{self.visit(node.token.index_exp)}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
             return read_code
+        # Strings
+        elif node.token.__class__.__name__ == "String":
+            # Verifica se string ja existe e, caso não exista, a insere na tabela de simbolos de strings
+            string_value = node.token.value
+            if string_value not in self.STRING_DECLARATIONS:
+                self.STRING_DECLARATIONS.append(string_value)
+
+            string_label = f"$_string_{self.STRING_DECLARATIONS.index(string_value)}"
+            return f"movl\t{string_label},(%esp)\ncall\t_print_string\nmovl\t$0, %eax"
         else: 
             if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                 val = self.visit(node.token)
@@ -433,9 +447,12 @@ class CodeGenerator(NodeVisitor):
             return ''
         self.visit(tree)
 
-        # prinf
+        # Declaração de strings
         asm_code = "\t.section\t.rdata,\"dr\"\nLC0:\n.ascii\t\"%d\\12\\0\"\n"
         asm_code += "\nLC1:\n.ascii\t\"%d\\0\"\n"
+        
+        for i, decl_string in enumerate(self.STRING_DECLARATIONS):
+            asm_code += f"_string_{i}:\n.ascii\t\"{decl_string}\\0\"\n"
 
         # Variaveis
         print("PROGRAM SCOPE")
@@ -459,8 +476,11 @@ class CodeGenerator(NodeVisitor):
         asm_code += "\n\n.text\n\n"
         asm_code += ".globl\t_print\n_print:\npushl\t%ebp\nmovl\t%esp, %ebp\nsubl\t$24, %esp\nmovl\t8(%ebp), %eax\nmovl\t%eax, 4(%esp)\nmovl\t$LC0, (%esp)\ncall	_printf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
 
+        ## PRINT_STRING FUNCTION
+        asm_code += ".globl	_print_string\n_print_string:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, (%esp)\ncall	_puts\nnop\nleave\nret\n\n"
+
         ## SCAN FUNCTION
-        asm_code += ".globl	_scan\n_scan:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n"
+        asm_code += ".globl	_read\n_read:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n"
 
         # Declaração de funções
         for fn_name in self.FUNCTION_DEFINITIONS:

@@ -62,6 +62,20 @@ class Lexer(object):
         token = RESERVED_KEYWORDS.get(result, Token(ID, result))
         return token
 
+    def _string(self):
+        """
+            Lida com reconhecimento de strings
+        """
+        self.advance() # first quote
+        result = ''
+        while self.current_char != "\"":
+            result += self.current_char
+            self.advance()
+        
+        self.advance() # second quote
+
+        return Token(STRING, result)
+
     def get_next_token(self):
         """
             Obtem o proximo token do input
@@ -138,6 +152,9 @@ class Lexer(object):
             if self.current_char == ']':
                 self.advance()
                 return Token(CLOSEBRACKET, ']')
+            if self.current_char == "\"":
+                return self._string()
             self.error(self.current_char)
+
 
         return Token(EOF, None)

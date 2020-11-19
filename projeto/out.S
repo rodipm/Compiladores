@@ -4,10 +4,11 @@ LC0:
 
 LC1:
 .ascii	"%d\0"
+_string_0:
+.ascii	"OI\0"
 	.data
 
-.comm	_UDHSAHDIU, 4, 4
-.comm	_INPUTS, 12, 2
+.comm	_X, 4, 4
 
 
 .text
@@ -27,8 +28,20 @@ nop
 leave
 ret
 
-.globl	_scan
-_scan:
+.globl	_print_string
+_print_string:
+pushl	%ebp
+movl	%esp, %ebp
+subl	$24, %esp
+movl	8(%ebp), %eax
+movl	%eax, (%esp)
+call	_puts
+nop
+leave
+ret
+
+.globl	_read
+_read:
 pushl	%ebp
 movl	%esp, %ebp
 subl	$24, %esp
@@ -51,13 +64,19 @@ andl	$-16, %esp
 subl	$16, %esp
 call	___main
 	
-	label_10:
+	label_1:
 	movl	$0, %eax
+	movl	$4 ,%edx
+	movl	%edx, _X
 	
 	label_20:
 	movl	$0, %eax
-	movl	$3 ,%edx
-	movl	%edx, _UDHSAHDIU
+	jmp label_30
 	
+	label_30:
+	movl	$0, %eax
+	movl	$_string_0,(%esp)
+	call	_print_string
+	movl	$0, %eax
 	leave
 ret

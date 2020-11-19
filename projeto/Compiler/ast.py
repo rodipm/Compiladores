@@ -114,10 +114,10 @@ class FnCallStatement(AST):
         self.function_name = function_name
         self.function_exp = function_exp
 
-# class String(AST):
-#     __doc__ = 'Representação string'
-#     def __init__(self, function_name, function_exp):
-#         self.function_name = function_name
-#         self.function_exp = function_exp
+class String(AST):
+    __doc__ = 'Representação string'
+    def __init__(self, value):
+        self.value = value
+        
 class NoOp(AST):
     pass

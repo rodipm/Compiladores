@@ -206,15 +206,14 @@ class Parser(object):
             Pitem : Exp | STRING
         """
         print("(Pitem)")
-
-        # if self.current_token.type == STRING:
-        #     string_node = self.current_token
-        #     print("STRING NODE")
-        #     print(string_node)
-        #     self.consome(STRING)
-        #     return PrintItem(String(string_node.value))
-        # else:
-        return PrintItem(self.Exp())
+        print(self.current_token.type)
+        if self.current_token.type == STRING:
+            print("IS STRING")
+            string_node = self.current_token
+            self.consome(STRING)
+            return PrintItem(String(string_node.value))
+        else:
+            return PrintItem(self.Exp())
 
 
     def Eb(self):
@@ -438,8 +437,11 @@ class Parser(object):
         return DefStatement(line_number, function_name, function_var, function_exp)
 
     def Remark(self):
+        """
+            Remark : REM STRING
+        """
         self.consome(REM)
-        self.consome(ID) # sequencia de caracteres
+        self.consome(STRING)
         return self.empty()
 
     def Dim(self):
@@ -468,6 +470,7 @@ class Parser(object):
         """
         Return : RETURN
         """
+        pass
         
     def parse(self):
         """
@@ -502,7 +505,8 @@ class Parser(object):
             Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
             
             Return: RETURN
-            Remark : REM (CHARACTER)*
+
+            Remark : REM STRING
         """
         print("*****************PARSE***********************")
         node = self.Program()
