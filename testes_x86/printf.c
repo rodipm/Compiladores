@@ -1,10 +1,10 @@
 #include <stdio.h>
 
-void print(int x) {
-    printf("%d\n", x);
+void print(char *x) {
+    printf("%s\n", x);
 }
 
 int main() {
-    print(2);
+    print("Teste teste 123");
     return 0;
 }

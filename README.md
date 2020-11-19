@@ -62,41 +62,41 @@ ID: letter(digit|letter)*
 
 ## Terminais
 
-+ INTEGER
-+ PLUS +
-+ MINUS -
-+ MUL *
-+ DIV /
-+ EQUAL =
-+ EQ ==
-+ GTEQ >=
-+ GT >
-+ NOTEQ <>
-+ LESSEQ <=
-+ LESS <
-+ LPAREN (
-+ RPAREN )
-+ COMMA ,
-+ QUOTES "
-+ LET 
-+ FN
-+ READ
-+ DATA
-+ PRINT
-+ GOTO
-+ GO
-+ TO
-+ IF
-+ THEN
-+ FOR
-+ TO
-+ STEP
-+ NEXT
-+ DIM
-+ DEF
-+ GOSUB
-+ RETURN
-+ REM
+\item INTEGER
+\item PLUS \item
+\item MINUS -
+\item MUL *
+\item DIV /
+\item EQUAL =
+\item EQ ==
+\item GTEQ >=
+\item GT >
+\item NOTEQ <>
+\item LESSEQ <=
+\item LESS <
+\item LPAREN (
+\item RPAREN )
+\item COMMA ,
+\item QUOTES "
+\item LET 
+\item FN
+\item READ
+\item DATA
+\item PRINT
+\item GOTO
+\item GO
+\item TO
+\item IF
+\item THEN
+\item FOR
+\item TO
+\item STEP
+\item NEXT
+\item DIM
+\item DEF
+\item GOSUB
+\item RETURN
+\item REM
 
 
 ## Versao simplificada para operacoes aritméticas
@@ -114,7 +114,7 @@ Exp: Term (PLUS|MINUS Term)*
 
 Term: Eb ((MUL | DIV) Eb)*
 
-Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var | FN letter LPAREN Exp RPAREN
 
 Remark : REM (CHARACTER)*
 
@@ -130,17 +130,19 @@ Após feitos testes, pode-se verificar a funcionalidade da geração de código 
 ```
 Program : BStatement BStatement*
 
-BStatement : INTEGER Assign | PRINT | Remark
+BStatement : INTEGER Assign | PRINT | GOTO | IF | FOR | NEXT | DEF | Remark
 
 Assign : LET Var = Exp
 
-Var : ID
+Var : ID | ID[Exp (, Exp)*]
 
 Exp: Term (PLUS|MINUS Term)*
 
 Term: Eb ((MUL | DIV) Eb)*
 
 Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var
+
+Read : READ Var
 
 Print : PRINT  
       | PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
@@ -154,6 +156,10 @@ If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
 For : FOR ID EQUAL Exp TO Exp | FOR ID EQUAL Exp TO Exp STEP Exp
 
 Next : NEXT ID
+
+Def : DEF FN ID LPAREN ID RPAREN EQUAL Exp
+
+Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
 
 Remark : REM (CHARACTER)*
 
