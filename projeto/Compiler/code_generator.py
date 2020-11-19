@@ -12,7 +12,7 @@ class NodeVisitor(object):
 
 
 class CodeGenerator(NodeVisitor):
-    PROGRAM_SCOPE = {"Global": {}}
+    VAR_DECLARATIONS = {"Global": {}}
     ARRAY_DECLARATIONS = {}
     FUNCTION_DEFINITIONS = {}
 
@@ -125,15 +125,20 @@ class CodeGenerator(NodeVisitor):
         return node.line_number, self.visit(node.node)
 
     def visit_Assign(self, node):
+        print("visit_Assign")
         var_scopes_list = node.left.scopes_list
         var_name = node.left.value
 
         value = self.visit(node.right)
         
         # Assign para arrays
+        if node.left.index_exp is not None and node.left.value not in self.ARRAY_DECLARATIONS:
+                raise NameError(f"Array: {node.left.value} não definido.")
+            
         if node.left.value in self.ARRAY_DECLARATIONS:
             print("ASSIG ARRAY ASSIGN ARRAY")
             indexig_code = ""
+    
             if node.left.index_exp.__class__.__name__ in ["Var"]:
                 indexig_code = f"movl   _{node.left.index_exp.value}, %ebx\n"
             elif node.left.index_exp.__class__.__name__ in ["BinOp"]:
@@ -147,22 +152,22 @@ class CodeGenerator(NodeVisitor):
         # Assign para variaveis
         else:
             # Verifica o escopo
-            if self.PROGRAM_SCOPE.get(var_scopes_list[-1]) is None:
+            if self.VAR_DECLARATIONS.get(var_scopes_list[-1]) is None:
                 # adiciona escopo
-                self.PROGRAM_SCOPE[var_scopes_list[-1]] = {}
-                scope = self.PROGRAM_SCOPE[var_scopes_list[-1]]
+                self.VAR_DECLARATIONS[var_scopes_list[-1]] = {}
+                scope = self.VAR_DECLARATIONS[var_scopes_list[-1]]
 
             # Busca a variável no escopo atual e, caso falhe, nos escopos ateriores
             is_new_var = True
             for search_scope in var_scopes_list[::-1]:
-                if self.PROGRAM_SCOPE[search_scope].get(var_name) is not None:
+                if self.VAR_DECLARATIONS[search_scope].get(var_name) is not None:
                     if search_scope != "Global":
                         var_name = var_name + "_" + search_scope
                     is_new_var = False
                     break
                 
             if is_new_var:
-                self.PROGRAM_SCOPE[var_scopes_list[-1]][var_name] = value
+                self.VAR_DECLARATIONS[var_scopes_list[-1]][var_name] = value
                 if var_scopes_list[-1] != "Global":
                     var_name = var_name + "_" + var_scopes_list[-1]
 
@@ -181,7 +186,7 @@ class CodeGenerator(NodeVisitor):
             print("VAR INDEX EXP")
             print(var_index_exp, var_name)
             if var_name not in self.ARRAY_DECLARATIONS:
-                raise NameError(repr(var_name))
+                raise NameError(f"Array: {repr(var_name)} não definido.\nLinha {var_scope_line}.")
                 
             if var_index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
                 var_name = var_name + f"+{var_index_exp.value*4}"
@@ -194,7 +199,7 @@ class CodeGenerator(NodeVisitor):
         else: 
             found_var = False
             for search_scope in node.scopes_list[::-1]:
-                scope = self.PROGRAM_SCOPE.get(search_scope)
+                scope = self.VAR_DECLARATIONS.get(search_scope)
                 if not scope:
                     continue
                 if scope.get(var_name) is not None:
@@ -205,7 +210,7 @@ class CodeGenerator(NodeVisitor):
             
             # Verifica a variável
             if found_var == False:
-                raise NameError(repr(var_name))
+                raise NameError(f"Variável: {repr(var_name)} não definida.\nLinha {var_scope_line}.")
             else:
                 return "_" + str(var_name)
         
@@ -218,6 +223,9 @@ class CodeGenerator(NodeVisitor):
         dest_var = node.dest_var
         print(dest_var)
         
+        if dest_var.value not in self.ARRAY_DECLARATIONS:
+            raise NameError(f"Array: {repr(dest_var.value)} não definido.")
+
         if node.dest_var.index_exp:
             read_code = f"movl	{self.visit(node.dest_var.index_exp)}, %eax\nsall	$2, %eax\naddl	$_{dest_var.value}, %eax\nmovl  %eax, (%esp)\ncall _scan\n"
             return read_code
@@ -239,10 +247,13 @@ class CodeGenerator(NodeVisitor):
         return '\n'.join(child_code)
 
     def visit_PrintItem(self, node):
+        # Arrays
         if hasattr(node.token, 'index_exp') and node.token.index_exp:
             if node.token.index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
                 read_code = f"movl\t_{node.token.value}+{node.token.index_exp.value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
             else:
+                if node.token.value not in self.ARRAY_DECLARATIONS:
+                    raise NameError(f"Array: {node.token.value} não definido.")
                 read_code = f"movl	{self.visit(node.token.index_exp)}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
             return read_code
         else: 
@@ -319,7 +330,7 @@ class CodeGenerator(NodeVisitor):
 
         # Adiciona a variável no escopo da funcao
         for_end_exp_var_name = f"for_{line_number}_end_exp"
-        self.PROGRAM_SCOPE["Global"][for_end_exp_var_name] = "$0"
+        self.VAR_DECLARATIONS["Global"][for_end_exp_var_name] = "$0"
 
         end_exp_code = ""
         if end_exp.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
@@ -362,12 +373,12 @@ class CodeGenerator(NodeVisitor):
         if function_name not in self.FUNCTION_DEFINITIONS.keys():
             self.FUNCTION_DEFINITIONS[function_name] = ""
         else:
-            raise NameError(repr(function_name))
+            raise NameError(f"Tentativa de redefinição da função {repr(function_name)} na linha {line_number}")
 
         print("function_var")
         # Adiciona a variável no escopo da funcao
-        self.PROGRAM_SCOPE[function_name] = {}
-        self.PROGRAM_SCOPE[function_name][function_var.value] = "$0"
+        self.VAR_DECLARATIONS[function_name] = {}
+        self.VAR_DECLARATIONS[function_name][function_var.value] = "$0"
 
         def_code = f".globl fn_{function_name}\nfn_{function_name}:\n"
         def_code += f"movl	(%ebp), %eax\nmovl	%eax, {self.visit(function_var)}\n"
@@ -390,7 +401,7 @@ class CodeGenerator(NodeVisitor):
         print(function_name)
         print(self.FUNCTION_DEFINITIONS)
         if function_name not in self.FUNCTION_DEFINITIONS.keys():
-            raise NameError(repr(function_name))
+            raise NameError(f"Tentativa de chamada da função {repr(function_name)} não definida.")
 
         exp_code = ""
         if function_exp.__class__.__name__ in ["Num", "UnaryOp"]:
@@ -428,13 +439,13 @@ class CodeGenerator(NodeVisitor):
 
         # Variaveis
         print("PROGRAM SCOPE")
-        print(self.PROGRAM_SCOPE)
+        print(self.VAR_DECLARATIONS)
         asm_code += "\t.data\n\n"
-        for scope in self.PROGRAM_SCOPE.keys():
+        for scope in self.VAR_DECLARATIONS.keys():
             scope_suffix = ""
             if scope != "Global":
                 scope_suffix = "_" + scope
-            asm_code += '\n'.join(map(lambda k: f".comm	_{k}{scope_suffix}, 4, 4", self.PROGRAM_SCOPE[scope].keys())) + '\n'
+            asm_code += '\n'.join(map(lambda k: f".comm	_{k}{scope_suffix}, 4, 4", self.VAR_DECLARATIONS[scope].keys())) + '\n'
 
         # Arrays
         for arr in self.ARRAY_DECLARATIONS.keys():

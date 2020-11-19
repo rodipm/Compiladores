@@ -7,6 +7,7 @@ class Parser(object):
         self.lexer = lexer
         self.current_token = self.lexer.get_next_token()
         self.scopes = ["Global"]
+        self.line_number = ""
 
     def enter_scope(self, line_number):
         self.scopes.append(str(line_number))
@@ -19,14 +20,14 @@ class Parser(object):
         return self.scopes[-1]
 
 
-    def error(self):
-        raise Exception('Invalid syntax')
+    def error(self, expected):
+        raise Exception(f'Sintaxe inválida na linha:{self.line_number}.\nTipo de Token Esperado: {expected}.\nToken Encontrado: {self.current_token}')
 
-    def eat(self, token_type):
+    def consome(self, token_type):
         if self.current_token.type == token_type:
             self.current_token = self.lexer.get_next_token()
         else:
-            self.error()
+            self.error(token_type)
 
     
     def empty(self):
@@ -59,9 +60,10 @@ class Parser(object):
         node = None
         print(self.current_token)
         line_number = self.current_token.value
+        self.line_number = line_number
         print("Line Number: ", line_number)
 
-        self.eat(INTEGER)
+        self.consome(INTEGER)
         print("->INTEGER->")
 
         if self.current_token.type == LET:
@@ -94,12 +96,12 @@ class Parser(object):
             Assign : LET Var EQUAL Exp
         """
         print("(Assign)")
-        self.eat(LET)
+        self.consome(LET)
         print("->LET->")
         left = self.Var()
 
         token = self.current_token
-        self.eat(EQUAL)
+        self.consome(EQUAL)
         print("->EQUAL->")
 
         right = self.Exp()
@@ -113,18 +115,18 @@ class Parser(object):
         """
         print("(Var)")
         cur_token = self.current_token
-        self.eat(ID)
+        self.consome(ID)
         print("->ID->")
 
         index_exp = None
         if self.current_token.type == OPENBRACKET:
             print("(OPENBRACKET)")
-            self.eat(OPENBRACKET)
+            self.consome(OPENBRACKET)
 
             index_exp = self.Exp()
 
             print("(CLOSEBRACKET)")
-            self.eat(CLOSEBRACKET)
+            self.consome(CLOSEBRACKET)
 
         return Var(cur_token, self.scopes[:], index_exp)
 
@@ -137,11 +139,11 @@ class Parser(object):
         while self.current_token.type in (PLUS, MINUS):
             token = self.current_token
             if token.type == PLUS:
-                self.eat(PLUS)
+                self.consome(PLUS)
                 print("->PLUS->")
             else:
                 if token.type == MINUS:
-                    self.eat(MINUS)
+                    self.consome(MINUS)
                     print("->MINUS->")
             node = BinOp(left=node, op=token, right=(self.Term()))
 
@@ -156,11 +158,11 @@ class Parser(object):
         while self.current_token.type in (MUL, DIV):
             token = self.current_token
             if token.type == MUL:
-                self.eat(MUL)
+                self.consome(MUL)
                 print("->MUL->")
             else:
                 if token.type == DIV:
-                    self.eat(DIV)
+                    self.consome(DIV)
                     print("->DIV->")
             node = BinOp(left=node, op=token, right=(self.Eb()))
 
@@ -171,7 +173,7 @@ class Parser(object):
             Read : READ Var
         """
         print("(READ)")
-        self.eat(READ)
+        self.consome(READ)
 
         read_var = self.Var()
         return ReadStatement(read_var)
@@ -181,7 +183,7 @@ class Parser(object):
             Print : PRINT Pitem (COMMA Pitem)* | (COMMA Pitem)* COMMA
         """
         print("Print")
-        self.eat(PRINT)
+        self.consome(PRINT)
 
         print_root = PrintStatement()
 
@@ -193,7 +195,7 @@ class Parser(object):
 
         while token.type == COMMA:
             print("Eating comma")
-            self.eat(COMMA)
+            self.consome(COMMA)
             print_root.children.append(self.Pitem())
             token = self.current_token
         
@@ -209,7 +211,7 @@ class Parser(object):
         #     string_node = self.current_token
         #     print("STRING NODE")
         #     print(string_node)
-        #     self.eat(STRING)
+        #     self.consome(STRING)
         #     return PrintItem(String(string_node.value))
         # else:
         return PrintItem(self.Exp())
@@ -227,41 +229,41 @@ class Parser(object):
         print("(Eb)")
         token = self.current_token
         if token.type == PLUS:
-            self.eat(PLUS)
+            self.consome(PLUS)
             print("->PLUS->")
             node = UnaryOp(token, self.Eb())
             return node
         if token.type == MINUS:
-            self.eat(MINUS)
+            self.consome(MINUS)
             print("->MINUS->")
             node = UnaryOp(token, self.Eb())
             return node
         if token.type == INTEGER:
-            self.eat(INTEGER)
+            self.consome(INTEGER)
             print("->INTEGER->")
             return Num(token)
         if token.type == LPAREN:
-            self.eat(LPAREN)
+            self.consome(LPAREN)
             print("->LPAREN->")
             node = self.Exp()
-            self.eat(RPAREN)
+            self.consome(RPAREN)
             print("->RPAREN->")
             return node
         if token.type == FN:
             print("(FN)")
-            self.eat(FN)
+            self.consome(FN)
 
             function_name = self.current_token.value
-            self.eat(ID)
+            self.consome(ID)
             print("FUNCTION NAME FN CALL")
             print(function_name)
 
-            self.eat(LPAREN)
+            self.consome(LPAREN)
             print("->LPAREN->")
 
             function_exp = self.Exp()
 
-            self.eat(RPAREN)
+            self.consome(RPAREN)
             print("->RPAREN->")
             return FnCallStatement(function_name, function_exp)
 
@@ -276,17 +278,17 @@ class Parser(object):
         token = self.current_token
         print(token)
         if token.type == GOTO:
-            self.eat(GOTO)
+            self.consome(GOTO)
             print("(GOTO)")
 
         elif token.type == GO:
-            self.eat(GO)
+            self.consome(GO)
             print("(GO)")
-            self.eat(TO)
+            self.consome(TO)
             print("(TO)")
 
         integer_token = self.current_token
-        self.eat(INTEGER)
+        self.consome(INTEGER)
         print("->INTEGER->")
 
         return GotoStatement(integer_token.value)
@@ -296,28 +298,28 @@ class Parser(object):
             If : IF Exp (EQ | NOTEQ | GT | LESS | GTEQ | LESSEQ) Exp THEN INTEGER
         """
         print("(IF)")
-        self.eat(IF)
+        self.consome(IF)
         left_exp = self.Exp()
 
         token = self.current_token
         operator = None
         if token.type == EQ:
-            self.eat(EQ)
+            self.consome(EQ)
             print("IS EQ")
         elif token.type == NOTEQ:
-            self.eat(NOTEQ)
+            self.consome(NOTEQ)
             print("IS NOTEQ")
         elif token.type == GT:
-            self.eat(GT)
+            self.consome(GT)
             print("IS GT")
         elif token.type == LESS:
-            self.eat(LESS)
+            self.consome(LESS)
             print("IS LESS")
         elif token.type == GTEQ:
-            self.eat(GTEQ)
+            self.consome(GTEQ)
             print("IS GTEQ")
         elif token.type == LESSEQ:
-            self.eat(LESSEQ)
+            self.consome(LESSEQ)
             print("IS LESSEQ")
 
         operator = token
@@ -325,14 +327,14 @@ class Parser(object):
 
         right_exp = self.Exp()
 
-        self.eat(THEN)
+        self.consome(THEN)
 
         token = self.current_token
 
         destination_line = None
         if token.type == INTEGER:
             destination_line = token.value
-            self.eat(INTEGER)
+            self.consome(INTEGER)
         
         return IfStatement(left_exp, operator, right_exp, destination_line)
 
@@ -343,14 +345,14 @@ class Parser(object):
         self.enter_scope(line_number)
 
         print("(FOR)")
-        self.eat(FOR)
+        self.consome(FOR)
 
         print("(VAR)")
         for_var = self.Var()
 
         print("(EQUAL)")
         for_assign_token = self.current_token
-        self.eat(EQUAL)
+        self.consome(EQUAL)
 
         print("(EXP)")
         assign_exp = self.Exp()
@@ -358,7 +360,7 @@ class Parser(object):
         inside_assign = Assign(for_var, for_assign_token, assign_exp)
 
         print("(TO)")
-        self.eat(TO)
+        self.consome(TO)
 
         print("(EXP)")
         end_exp = self.Exp()
@@ -367,7 +369,7 @@ class Parser(object):
 
         if self.current_token.type == "STEP":
             print("(STEP)")
-            self.eat(STEP)
+            self.consome(STEP)
 
             step_exp = self.Exp()
 
@@ -390,7 +392,7 @@ class Parser(object):
             Next : NEXT VAR
         """
         print("(NEXT)")
-        self.eat(NEXT)
+        self.consome(NEXT)
         for_var = self.Var()
 
         current_scope_line = self.current_scope()
@@ -403,11 +405,11 @@ class Parser(object):
         """
 
         print("(DEF)")
-        self.eat(DEF)
+        self.consome(DEF)
 
         print("(FN)")
         print(self.current_token)
-        self.eat(FN)
+        self.consome(FN)
 
         function_name = self.current_token.value
         self.enter_scope(function_name)
@@ -415,19 +417,19 @@ class Parser(object):
 
         print(self.current_token)
         print("(ID)")
-        self.eat(ID)
+        self.consome(ID)
 
         print("(LPAREN)")
-        self.eat(LPAREN)
+        self.consome(LPAREN)
 
         print("(VAR)")
         function_var = self.Var()
 
         print("(RPAREN)")
-        self.eat(RPAREN)
+        self.consome(RPAREN)
         
         print("(EQUAL)")
-        self.eat(EQUAL)
+        self.consome(EQUAL)
 
         function_exp = self.Exp()
 
@@ -436,8 +438,8 @@ class Parser(object):
         return DefStatement(line_number, function_name, function_var, function_exp)
 
     def Remark(self):
-        self.eat(REM)
-        self.eat(ID) # sequencia de caracteres
+        self.consome(REM)
+        self.consome(ID) # sequencia de caracteres
         return self.empty()
 
     def Dim(self):
@@ -446,27 +448,32 @@ class Parser(object):
         """
 
         print("(DIM)")
-        self.eat(DIM)
+        self.consome(DIM)
 
         array_var = self.Var()
 
         print("(LPAREN)")
-        self.eat(LPAREN)
+        self.consome(LPAREN)
         
         array_size = self.current_token.value
         print("(INTEGER)")
-        self.eat(INTEGER)
+        self.consome(INTEGER)
 
         print("(RPAREN)")
-        self.eat(RPAREN)
+        self.consome(RPAREN)
 
         return  DimStatement(array_var, array_size)
 
+    def Return(self):
+        """
+        Return : RETURN
+        """
+        
     def parse(self):
         """
             Program : BStatement BStatement*
 
-            BStatement : INTEGER Assign | PRINT | GOTO | IF | FOR | NEXT | DEF | REMARK
+            BStatement : INTEGER Assign | PRINT | GOTO | IF | FOR | NEXT | DEF | REMARK | END
 
             Assign : LET Var = Exp
 
@@ -494,11 +501,12 @@ class Parser(object):
 
             Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
             
+            Return: RETURN
             Remark : REM (CHARACTER)*
         """
         print("*****************PARSE***********************")
         node = self.Program()
         if self.current_token.type != EOF:
-            self.error()
+            self.error(EOF)
         print("*****************END PARSE***********************")
         return node
