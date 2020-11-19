@@ -38,10 +38,60 @@ class CodeGenerator(NodeVisitor):
 
         arr_preparation_code = ""
 
+        # TODO: Adicionar tratamento de array multidimensinal
+        # Arrays
+        # # x
+        # movl	_x, %edx
+
+        # # y
+        # movl	$13, %ecx 	# Dim2
+        # imul	%ecx, %edx
+        # movl	%edx, %eax
+
+        # movl	_y, %edx
+        # addl	%edx, %eax
+
+        # # z
+        # movl	$21, %ecx 	# Dim3
+        # imul	%ecx, %edx
+        # movl	%edx, %eax
+
+        # movl	_z, %edx
+        # addl	%edx, %eax
+
         if hasattr(node.left, "index_exp") and node.left.index_exp:
-            arr_preparation_code += f"\nmovl    {self.visit(node.left.index_exp)}, %ebx\n"
+            # 1D
+            if len(node.left.index_exp) == 1:
+                print("BinOp LEFT - ARRAY - 1d")
+                arr_preparation_code += f"\nmovl    {self.visit(node.left.index_exp[0])}, %ebx\n"
+            # ND
+            else:
+                print("BinOp LEFT - ARRAY - Nd")
+                for i, i_exp in enumerate(node.left.index_exp):
+                    arr_preparation_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.left.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.left.value][i+1]
+                        arr_preparation_code += f"movl    ${cur_dim}, %ecx\n"
+                        arr_preparation_code += f"imul    %ecx, %edx\n"
+                        arr_preparation_code += f"movl    %edx, %eax\n"
+                arr_preparation_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                
         elif hasattr(node.right, "index_exp") and node.right.index_exp:
-            arr_preparation_code += f"\nmovl    {self.visit(node.right.index_exp)}, %ebx\n"
+            # 1D
+            if len(node.right.index_exp) == 1:
+                print("BinOp RIGHT - ARRAY - 1d")
+                arr_preparation_code += f"\nmovl    {self.visit(node.right.index_exp[0])}, %ebx\n"
+            # ND
+            else:
+                print("BinOp RIGHT - ARRAY - Nd")
+                for i, i_exp in enumerate(node.right.index_exp):
+                    arr_preparation_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.right.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
+                        arr_preparation_code += f"movl    ${cur_dim}, %ecx\n"
+                        arr_preparation_code += f"imul    %ecx, %edx\n"
+                        arr_preparation_code += f"movl    %edx, %eax\n"
+                arr_preparation_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
 
         if node.op.type in [PLUS, MINUS]:
             op_1 = ""
@@ -134,23 +184,67 @@ class CodeGenerator(NodeVisitor):
 
         value = self.visit(node.right)
         
+        # TODO: Adicionar tratamento para array multidimensional
         # Assign para arrays
         if node.left.index_exp is not None and node.left.value not in self.ARRAY_DECLARATIONS:
                 raise NameError(f"Array: {node.left.value} não definido.")
+        
 
         if node.left.value in self.ARRAY_DECLARATIONS:
             print("ASSIG ARRAY ASSIGN ARRAY")
-            indexig_code = ""
-    
-            if node.left.index_exp.__class__.__name__ in ["Var"]:
-                indexig_code = f"movl   _{node.left.index_exp.value}, %ebx\n"
-            elif node.left.index_exp.__class__.__name__ in ["BinOp"]:
-                indexig_code = f"{self.visit(node.left.index_exp)}\nmovl   %eax, %ebx\n"
+            # Array 1D
+            if len(node.left.index_exp) == 1: 
+                print("ASSIGN - Array 1D")
+                indexing_code = ""
+        
+                if node.left.index_exp[0].__class__.__name__ in ["Var"]:
+                    indexing_code = f"movl   _{node.left.index_exp[0].value}, %ebx\n"
+                elif node.left.index_exp[0].__class__.__name__ in ["BinOp"]:
+                    indexing_code = f"{self.visit(node.left.index_exp[0])}\nmovl   %eax, %ebx\n"
 
-            if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
-                return "movl\t" +  str(value) + f" ,%edx\n{indexig_code}movl\t%edx, " + self.visit(node.left) + "\n"
-            else:
-                return "TESTE"+ str(value) + indexig_code + "movl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
+                if hasattr(node.right, "index_exp") and node.right.index_exp:
+                    if (len(node.right.index_exp) == 1):
+                        return "TESTE movl\t" +  self.visit(node.right.index_exp) + f" ,%edx\n{indexing_code}movl\t%edx, " + self.visit(node.left) + "\n"
+                    else:
+                        return "movl\t" +  str(value) + f" ,%edx\n{indexing_code}movl\t%edx, " + self.visit(node.left) + "\n"
+                elif node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+                    return "movl\t" +  str(value) + f" ,%edx\n{indexing_code}movl\t%edx, " + self.visit(node.left) + "\n"
+                else:
+                    return  str(value) + indexing_code + "movl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
+            # Array ND
+            else: 
+                print("ASSIGN - Array ND")
+                indexing_code = ""
+
+                for i, i_exp in enumerate(node.left.index_exp):
+                    indexing_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.left.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.left.value][i+1]
+                        indexing_code += f"movl    ${cur_dim}, %ecx\n"
+                        indexing_code += f"imul    %ecx, %edx\n"
+                        indexing_code += f"movl    %edx, %eax\n"
+                indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+        
+                if hasattr(node.right, "index_exp") and node.right.index_exp:
+                    if (len(node.right.index_exp) == 1):
+                        return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
+                    else:
+                        right_index_code = ""
+                        for i, i_exp in enumerate(node.right.index_exp):
+                            right_index_code += f"\nmovl\t$0, %eax\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                            if (i+1 < len(node.right.index_exp)):
+                                cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
+                                right_index_code += f"movl    ${cur_dim}, %ecx\n"
+                                right_index_code += f"imul    %ecx, %edx\n"
+                                right_index_code += f"movl    %edx, %eax\n"
+                        right_index_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                        right_index_code += f"movl\t{value}, %eax\n"
+                        return  indexing_code + "push\t%ebx\n\n" + right_index_code + "pop\t%ebx\nmovl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
+                if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+                    return indexing_code + "\nmovl\t" +  str(value) + f" ,%edx\nmovl\t%edx, " + self.visit(node.left) + "\n"
+                else:
+                    return  indexing_code + "push\t%ebx\n\n" + str(value) + "pop\t%ebx\nmovl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
+                return "\nASSIGN - Array ND\n"
 
         # Assign para variaveis
         else:
@@ -174,6 +268,20 @@ class CodeGenerator(NodeVisitor):
                 if var_scopes_list[-1] != "Global":
                     var_name = var_name + "_" + var_scopes_list[-1]
 
+            if hasattr(node.right, "index_exp"):
+                if (len(node.right.index_exp) == 1):
+                   return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
+                else:
+                    indexing_code = ""
+                    for i, i_exp in enumerate(node.right.index_exp):
+                        indexing_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                        if (i+1 < len(node.right.index_exp)):
+                            cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
+                            indexing_code += f"movl    ${cur_dim}, %ecx\n"
+                            indexing_code += f"imul    %ecx, %edx\n"
+                            indexing_code += f"movl    %edx, %eax\n"
+                    indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                    return indexing_code + "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
             if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                 return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
             else:
@@ -182,20 +290,27 @@ class CodeGenerator(NodeVisitor):
     def visit_Var(self, node):
         var_name = node.value
         var_scope_line = node.scopes_list[-1]
-        var_index_exp = node.index_exp
+        var_index_expressions = node.index_exp
 
         # Arrays
-        if var_index_exp:
+        if var_index_expressions:
             print("VAR INDEX EXP")
-            print(var_index_exp, var_name)
+            print(var_index_expressions, var_name)
             if var_name not in self.ARRAY_DECLARATIONS:
                 raise NameError(f"Array: {repr(var_name)} não definido.\nLinha {var_scope_line}.")
-                
-            if var_index_exp.__class__.__name__ in ["Num", "UnaryOp"]:
-                var_name = var_name + f"+{var_index_exp.value*4}"
+            
+            # Array 1D
+            if len(var_index_expressions) == 1: 
+                if var_index_expressions[0].__class__.__name__ in ["Num", "UnaryOp"]:
+                    var_name = var_name + f"+{var_index_expressions[0].value*4}"
+                else:
+                    var_name = var_name + f"(,%ebx,4)"
+            # Array ND
             else:
                 var_name = var_name + f"(,%ebx,4)"
-        
+
+            
+            
             return "_" + str(var_name)
 
         # Variáveis normais
@@ -226,14 +341,28 @@ class CodeGenerator(NodeVisitor):
         dest_var = node.dest_var
         print(dest_var)
 
+        # Arrays
+        if hasattr(dest_var, 'index_exp') and dest_var.index_exp:
+            # 1D
+            if len(dest_var.index_exp) == 1:
+                if dest_var.value not in self.ARRAY_DECLARATIONS:
+                    raise NameError(f"Array: {repr(dest_var.value)} não definido.")
 
-        # Array
-        if node.dest_var.index_exp:    
-            if dest_var.value not in self.ARRAY_DECLARATIONS:
-                raise NameError(f"Array: {repr(dest_var.value)} não definido.")
-
-            read_code = f"movl	{self.visit(node.dest_var.index_exp)}, %eax\nsall	$2, %eax\naddl	$_{dest_var.value}, %eax\nmovl  %eax, (%esp)\ncall _read\n"
-            return read_code
+                read_code = f"movl	{self.visit(node.dest_var.index_exp[0])}, %eax\nsall	$2, %eax\naddl	$_{dest_var.value}, %eax\nmovl  %eax, (%esp)\ncall _read\n"
+                return read_code
+            # ND
+            else:
+                indexing_code = "\nmovl\t$0, %eax\nmovl\t$0, %ebx\n"
+                for i, i_exp in enumerate(node.dest_var.index_exp):
+                    indexing_code += f"movl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.dest_var.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.dest_var.value][i+1]
+                        indexing_code += f"movl    ${cur_dim}, %ecx\n"
+                        indexing_code += f"imul    %ecx, %edx\n"
+                        indexing_code += f"movl    %edx, %eax\n"
+                indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\nsall\t$2, %ebx\n"
+                read_code = f"{indexing_code}addl	$_{node.dest_var.value}, %ebx\nmovl  %ebx, (%esp)\ncall _read\n"
+                return read_code
         else: 
             dest_var_name = self.visit(dest_var)
 
@@ -254,13 +383,28 @@ class CodeGenerator(NodeVisitor):
     def visit_PrintItem(self, node):
         # Arrays
         if hasattr(node.token, 'index_exp') and node.token.index_exp:
-            if node.token.index_exp[0].__class__.__name__ in ["Num", "UnaryOp"]:
-                read_code = f"movl\t_{node.token.value}+{node.token.index_exp[0].value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+            # 1D
+            if len(node.token.index_exp) == 1:
+                if node.token.index_exp[0].__class__.__name__ in ["Num", "UnaryOp"]:
+                    read_code = f"movl\t_{node.token.value}+{node.token.index_exp[0].value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+                else:
+                    if node.token.value not in self.ARRAY_DECLARATIONS:
+                        raise NameError(f"Array: {node.token.value} não definido.")
+                    read_code = f"movl	{self.visit(node.token.index_exp[0])}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
+                return read_code
+            # ND
             else:
-                if node.token.value not in self.ARRAY_DECLARATIONS:
-                    raise NameError(f"Array: {node.token.value} não definido.")
-                read_code = f"movl	{self.visit(node.token.index_exp[0])}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
-            return read_code
+                indexing_code = "\nmovl\t$0, %eax\nmovl\t$0, %ebx\n"
+                for i, i_exp in enumerate(node.token.index_exp):
+                    indexing_code += f"movl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.token.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.token.value][i+1]
+                        indexing_code += f"movl    ${cur_dim}, %ecx\n"
+                        indexing_code += f"imul    %ecx, %edx\n"
+                        indexing_code += f"movl    %edx, %eax\n"
+                indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                read_code = f"{indexing_code}movl	{self.visit(node.token)}, %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
+                return read_code
         # Strings
         elif node.token.__class__.__name__ == "String":
             # Verifica se string ja existe e, caso não exista, a insere na tabela de simbolos de strings
@@ -434,10 +578,9 @@ class CodeGenerator(NodeVisitor):
         print("visit visit_DimStatement")
 
         array_var = node.arr_var
-        array_size = node.arr_dims[0]
+        array_dims = node.arr_dims
 
-        for i in range(array_size):
-            self.ARRAY_DECLARATIONS[array_var.value] = array_size
+        self.ARRAY_DECLARATIONS[array_var.value] = array_dims
 
         return ""
 
@@ -467,7 +610,8 @@ class CodeGenerator(NodeVisitor):
         # Arrays
         for arr in self.ARRAY_DECLARATIONS.keys():
             arr_dims = self.ARRAY_DECLARATIONS[arr]
-            asm_code += f".comm	_{arr}, {4*arr_dims}, 2\n"
+            arr_size = sum(arr_dims)*4
+            asm_code += f".comm	_{arr}, {arr_size}, 2\n"
 
         
         # Código
@@ -480,7 +624,7 @@ class CodeGenerator(NodeVisitor):
         asm_code += ".globl	_print_string\n_print_string:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, (%esp)\ncall	_puts\nnop\nleave\nret\n\n"
 
         ## SCAN FUNCTION
-        asm_code += ".globl	_read\n_read:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n"
+        asm_code += ".globl	_read\n_read:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
 
         # Declaração de funções
         for fn_name in self.FUNCTION_DEFINITIONS:

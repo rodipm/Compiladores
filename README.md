@@ -167,3 +167,11 @@ ID: letter(digit|letter)*
 ```
 
 
+DIM VAR(a) = [0, ..., a-1] -> VAR(n) = VAR(n)
+
+DIM(a, b) = 
+[
+      [0, ..., b-1],
+      [b, ..., 2b-1]
+]
+ -> VAR(n, m) = n*b

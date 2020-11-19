@@ -127,7 +127,7 @@ class Parser(object):
 
             while self.current_token.type == COMMA:
                 print("(COMMA)")
-                sellf.consome(COMMA)
+                self.consome(COMMA)
 
                 index_exp.append(self.Exp())
             
