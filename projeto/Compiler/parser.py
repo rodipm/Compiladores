@@ -54,7 +54,7 @@ class Parser(object):
 
     def BStatement(self):
         """
-            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | DEF | READ | DIM | Remark 
+            BStatement : INTEGER Assign | PRINT | IF | FOR | NEXT | GOTO | DEF | READ | DIM | Remark | GOSUB | RETURN
         """
         print("(BStatement)")
         node = None
@@ -68,6 +68,8 @@ class Parser(object):
 
         if self.current_token.type == LET:
             node = self.Assign()
+        elif self.current_token.type == GOSUB:
+            node = self.Gosub()
         elif self.current_token.type == GOTO or self.current_token.type == GO:
             node = self.Goto()
         elif self.current_token.type == REM:
@@ -86,6 +88,8 @@ class Parser(object):
             node = self.Dim()
         elif self.current_token.type == DEF:
             node = self.Def(line_number)
+        elif self.current_token.type == RETURN:
+            node = self.Return()
 
         base_statement = BaseStatement(line_number, node)
 
@@ -498,17 +502,33 @@ class Parser(object):
 
         return  DimStatement(array_var, array_dims)
 
+    def Gosub(self):
+        """
+            Gosub : GOSUB Integer
+        """
+        print("Gosub")
+
+        print("(GOSUB)")
+        self.consome(GOSUB)
+
+        integer_token = self.current_token
+        print("->INTEGER->")
+        self.consome(INTEGER)
+
+        return GosubStatement(integer_token.value)
+
     def Return(self):
         """
         Return : RETURN
         """
-        pass
+        self.consome(RETURN)
+        return ReturnStatement()
         
     def parse(self):
         """
             Program : BStatement BStatement*
 
-            BStatement : INTEGER Assign | PRINT | GOTO | IF | FOR | NEXT | DEF | REMARK | END
+            BStatement : INTEGER Assign | PRINT | GOTO | IF | FOR | NEXT | DEF | REMARK | GOSUB | RETURN | END
 
             Assign : LET Var = Exp
 
@@ -536,6 +556,8 @@ class Parser(object):
 
             Dim : DIM ID LPAREN INTEGER (COMMA INTEGER)* RPAREN (COMMA ID LPAREN INTEGER (COMMA INTEGER)* RPAREN) *
             
+            Gosub: GOSUB INTEGER
+
             Return: RETURN
 
             Remark : REM STRING

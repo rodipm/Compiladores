@@ -390,11 +390,11 @@ class CodeGenerator(NodeVisitor):
             # 1D
             if len(node.token.index_exp) == 1:
                 if node.token.index_exp[0].__class__.__name__ in ["Num", "UnaryOp"]:
-                    read_code = f"movl\t_{node.token.value}+{node.token.index_exp[0].value*4}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+                    read_code = f"movl\t_{node.token.value}+{node.token.index_exp[0].value*4}, %edx\npushl\t%edx\ncall\t_print\npopl %eax\nmovl\t$0, %eax"
                 else:
                     if node.token.value not in self.ARRAY_DECLARATIONS:
                         raise NameError(f"Array: {node.token.value} não definido.")
-                    read_code = f"movl	{self.visit(node.token.index_exp[0])}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
+                    read_code = f"movl	{self.visit(node.token.index_exp[0])}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\npushl\t%edx\n\ncall _print\npopl %edx\n"
                 return read_code
             # ND
             else:
@@ -407,7 +407,7 @@ class CodeGenerator(NodeVisitor):
                         indexing_code += f"imul    %ecx, %edx\n"
                         indexing_code += f"movl    %edx, %eax\n"
                 indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
-                read_code = f"{indexing_code}movl	{self.visit(node.token)}, %ebx\nmovl  %ebx, (%esp)\ncall _print\n"
+                read_code = f"{indexing_code}movl	{self.visit(node.token)}, %ebx\npushl\t%ebx\ncall _print\n\npopl %ebx\n"
                 return read_code
         # Strings
         elif node.token.__class__.__name__ == "String":
@@ -417,19 +417,26 @@ class CodeGenerator(NodeVisitor):
                 self.STRING_DECLARATIONS.append(string_value)
 
             string_label = f"$_string_{self.STRING_DECLARATIONS.index(string_value)}"
-            return f"movl\t{string_label},(%esp)\ncall\t_print_string\nmovl\t$0, %eax"
+            return f"pushl\t{string_label}\ncall\t_print_string\npopl\t%eax\nmovl\t$0, %eax"
         else: 
             if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                 val = self.visit(node.token)
-                return f"movl\t{val}, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+                return f"movl\t{val}, %edx\npushl\t%edx\ncall\t_print\n\npopl\t%eax\nmovl\t$0, %eax"
             else:
                 exp = self.visit(node.token)
-                return f"\n{exp}\nmovl\t%eax, %edx\nmovl\t%edx, (%esp)\ncall\t_print\nmovl\t$0, %eax"
+                return f"\n{exp}\nmovl\t%eax, %edx\npushl\t%edx\ncall\t_print\npopl\t%eax\nmovl\t$0, %eax"
 
     def visit_GotoStatement(self, node):
         label_name = "label_" + str(node.destination_line)
         return f"jmp {label_name}\n"
 
+    def visit_GosubStatement(self, node):
+        label_name = "label_" + str(node.destination_line)
+        return f"call {label_name}\n"
+
+    def visit_ReturnStatement(self, node):
+        return "ret\n"
+        
     def visit_IfStatement(self, node):
         print("Visit IfStatement")
         left_exp = node.left_exp
@@ -590,13 +597,13 @@ class CodeGenerator(NodeVisitor):
 
         exp_code = ""
         if mod_exp.__class__.__name__ in ["Num", "UnaryOp"]:
-            exp_code += f"movl  {self.visit(mod_exp)}, (%esp)\n"
+            exp_code += f"movl {self.visit(mod_exp)}, %eax\npushl\t%eax\n"
         elif mod_exp.__class__.__name__ in ["Var"]:
-            exp_code += f"movl {self.visit(mod_exp)}, %eax\nmovl  %eax, (%esp)\n"
+            exp_code += f"movl {self.visit(mod_exp)}, %eax\npushl\t%eax\n"
         else:
-            exp_code += f"{self.visit(mod_exp)}\nmovl  %eax, (%esp)\n"
+            exp_code += f"{self.visit(mod_exp)}\npushl\t%eax\n"
 
-        fn_call_code = f"{exp_code}call   _predef_rnd\n"
+        fn_call_code = f"{exp_code}call   _predef_rnd\npopl\t%ebx\n"
 
         return fn_call_code
 

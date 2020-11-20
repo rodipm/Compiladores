@@ -57,6 +57,9 @@ class Lexer(object):
             self.advance()
             reserved = RESERVED_KEYWORDS.get(result)
             if reserved:
+                print("RESERVED", reserved.type)
+                if reserved.type == GO and not self.peek().isspace():
+                    continue
                 return reserved
 
         token = RESERVED_KEYWORDS.get(result, Token(ID, result))

@@ -75,6 +75,16 @@ class GotoStatement(AST):
     def __init__(self, destination_line):
         self.destination_line = destination_line
 
+class ReturnStatement(AST):
+    __doc__ = 'Representação de um comando de RETURN'
+    def __init__(self):
+        pass
+
+class GosubStatement(AST):
+    __doc__ = 'Representação de um comando de desvio GOSUB'
+    def __init__(self, destination_line):
+        self.destination_line = destination_line
+
 class IfStatement(AST):
     __doc__ = 'Representação de um IF statement'
     def __init__(self, left_exp, operator, right_exp, destination_line):
