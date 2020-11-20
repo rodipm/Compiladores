@@ -1,7 +1,7 @@
 10 DIM X(3)
 20 LET X[0] = 30
 30 LET X[1] = 20
-40 LET X[2] = 10
+40 LET X[2] = 20
 100 FOR I = 0 TO 3
 200     FOR J = 0 TO 2-1-I
 210     LET NIDEX = J+1

@@ -118,6 +118,11 @@ class String(AST):
     __doc__ = 'Representação string'
     def __init__(self, value):
         self.value = value
-        
+
+class PredefRND(AST):
+    __doc__ = 'Representação da função predefinida RANDOM'
+    def __init__(self, mod_exp):
+        self.mod_exp = mod_exp
+
 class NoOp(AST):
     pass

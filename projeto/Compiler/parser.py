@@ -233,6 +233,7 @@ class Parser(object):
                   | LPAREN Exp RPAREN
                   | Var
                   | FN ID LPAREN Exp RPAREN
+                  | PREDEF
         """
         print("(Eb)")
         token = self.current_token
@@ -274,6 +275,18 @@ class Parser(object):
             self.consome(RPAREN)
             print("->RPAREN->")
             return FnCallStatement(function_name, function_exp)
+        if token.type == RND:
+            print("(RND)")
+            self.consome(RND)
+
+            self.consome(LPAREN)
+            print("->LPAREN->")
+
+            mod_exp = self.Exp()
+
+            self.consome(RPAREN)
+            print("->RPAREN->")
+            return PredefRND(mod_exp)
 
         node = self.Var()
         return node

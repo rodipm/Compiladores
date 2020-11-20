@@ -184,7 +184,6 @@ class CodeGenerator(NodeVisitor):
 
         value = self.visit(node.right)
         
-        # TODO: Adicionar tratamento para array multidimensional
         # Assign para arrays
         if node.left.index_exp is not None and node.left.value not in self.ARRAY_DECLARATIONS:
                 raise NameError(f"Array: {node.left.value} não definido.")
@@ -198,15 +197,22 @@ class CodeGenerator(NodeVisitor):
                 indexing_code = ""
         
                 if node.left.index_exp[0].__class__.__name__ in ["Var"]:
-                    indexing_code = f"movl   _{node.left.index_exp[0].value}, %ebx\n"
+                    indexing_code = f"movl   {self.visit(node.left.index_exp[0])}, %ebx\n"
                 elif node.left.index_exp[0].__class__.__name__ in ["BinOp"]:
                     indexing_code = f"{self.visit(node.left.index_exp[0])}\nmovl   %eax, %ebx\n"
 
                 if hasattr(node.right, "index_exp") and node.right.index_exp:
-                    if (len(node.right.index_exp) == 1):
-                        return "TESTE movl\t" +  self.visit(node.right.index_exp) + f" ,%edx\n{indexing_code}movl\t%edx, " + self.visit(node.left) + "\n"
-                    else:
-                        return "movl\t" +  str(value) + f" ,%edx\n{indexing_code}movl\t%edx, " + self.visit(node.left) + "\n"
+                    right_index_code = ""
+                    for i, i_exp in enumerate(node.right.index_exp):
+                        right_index_code += f"\nmovl\t$0, %eax\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                        if (i+1 < len(node.right.index_exp)):
+                            cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
+                            right_index_code += f"movl    ${cur_dim}, %ecx\n"
+                            right_index_code += f"imul    %ecx, %edx\n"
+                            right_index_code += f"movl    %edx, %eax\n"
+                    right_index_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                    right_index_code += f"movl\t{value}, %eax\n"
+                    return  indexing_code + "push\t%ebx\n\n" + right_index_code + "pop\t%ebx\nmovl\t" + "%eax" + ", " + self.visit(node.left) + "\n"
                 elif node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                     return "movl\t" +  str(value) + f" ,%edx\n{indexing_code}movl\t%edx, " + self.visit(node.left) + "\n"
                 else:
@@ -268,10 +274,8 @@ class CodeGenerator(NodeVisitor):
                 if var_scopes_list[-1] != "Global":
                     var_name = var_name + "_" + var_scopes_list[-1]
 
-            if hasattr(node.right, "index_exp"):
+            if hasattr(node.right, "index_exp") and node.right.index_exp:
                 if (len(node.right.index_exp) == 1):
-                   return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
-                else:
                     indexing_code = ""
                     for i, i_exp in enumerate(node.right.index_exp):
                         indexing_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
@@ -282,7 +286,7 @@ class CodeGenerator(NodeVisitor):
                             indexing_code += f"movl    %edx, %eax\n"
                     indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
                     return indexing_code + "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
-            if node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+            elif node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                 return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
             else:
                 return str(value) + "movl\t" + "%eax" + ", " + "_" + var_name + "\n"
@@ -573,6 +577,23 @@ class CodeGenerator(NodeVisitor):
 
         return fn_call_code
 
+    def visit_PredefRND(self, node):
+        print("visit PredefRND")
+
+        mod_exp = node.mod_exp
+
+        exp_code = ""
+        if mod_exp.__class__.__name__ in ["Num", "UnaryOp"]:
+            exp_code += f"movl  {self.visit(mod_exp)}, (%esp)\n"
+        elif mod_exp.__class__.__name__ in ["Var"]:
+            exp_code += f"movl {self.visit(mod_exp)}, %eax\nmovl  %eax, (%esp)\n"
+        else:
+            exp_code += f"{self.visit(mod_exp)}\nmovl  %eax, (%esp)\n"
+
+        fn_call_code = f"{exp_code}call   _predef_rnd\n"
+
+        return fn_call_code
+
 
     def visit_DimStatement(self, node):
         print("visit visit_DimStatement")
@@ -626,6 +647,9 @@ class CodeGenerator(NodeVisitor):
         ## SCAN FUNCTION
         asm_code += ".globl	_read\n_read:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
 
+        ## PREDEF RND
+        asm_code += ".globl	_predef_rnd\n_predef_rnd:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	$0, (%esp)\ncall	_time\nmovl	%eax, (%esp)\ncall	_srand\ncall	_rand\ncltd\nidivl	8(%ebp)\nmovl	%edx, %eax\naddl	$24, %esp\nmovl	%ebp, %esp\nleave\nret\n\n"
+        
         # Declaração de funções
         for fn_name in self.FUNCTION_DEFINITIONS:
             asm_code += self.FUNCTION_DEFINITIONS[fn_name]
