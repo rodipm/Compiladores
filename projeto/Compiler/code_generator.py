@@ -443,13 +443,19 @@ class CodeGenerator(NodeVisitor):
         right_val = self.visit(right_exp)
 
         if (left_exp.__class__.__name__ in ["Num", "Var"]):
-            expressions_code += f"movl  {left_val}, %ecx\n"
+            if hasattr(left_exp, "index_exp") and left_exp.index_exp and left_exp.index_exp[0].__class__.__name__ == "Var":
+                expressions_code += f"movl	{self.visit(left_exp.index_exp[0])}, %ebx\n movl  _{left_exp.value}(,%ebx, 4), %ecx\n"
+            else:
+                expressions_code += f"movl  {left_val}, %ecx\n"
         else:
             expressions_code += f"{left_val} movl %eax, %ecx\n"
             
 
         if (right_exp.__class__.__name__ in ["Num", "Var"]):
-            expressions_code += f"movl	{right_val}, %edx\n"
+            if hasattr(right_exp, "index_exp") and right_exp.index_exp and right_exp.index_exp[0].__class__.__name__ == "Var":
+                expressions_code += f"movl	{self.visit(right_exp.index_exp[0])}, %ebx\n movl  _{right_exp.value}(,%ebx, 4), %edx\n"
+            else:
+                expressions_code += f"movl  {left_val}, %edx\n"
         else:
             expressions_code += f"{right_val}movl %eax, %edx\n"
 

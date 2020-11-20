@@ -5,13 +5,12 @@ LC0:
 LC1:
 .ascii	"%d\0"
 _string_0:
-.ascii	"OK\0"
+.ascii	"RESULTADO:\0"
 _string_1:
-.ascii	"THEN\0"
-_string_2:
 .ascii	"FIM\0"
 	.data
 
+.comm	_N, 4, 4
 .comm	_for_100_end_exp, 4, 4
 .comm	_for_200_end_exp, 4, 4
 .comm	_for_900_end_exp, 4, 4
@@ -22,7 +21,7 @@ _string_2:
 .comm	_NVAL_200, 4, 4
 .comm	_TEMP_200, 4, 4
 .comm	_A_900, 4, 4
-.comm	_X, 12, 2
+.comm	_X, 28, 2
 
 
 .text
@@ -102,24 +101,53 @@ call	___main
 	
 	label_20:
 	movl	$0, %eax
-	movl	$30 ,%edx
+	movl	$2 ,%edx
 	movl	%edx, _X+0
 	
-	label_30:
+	label_21:
 	movl	$0, %eax
-	movl	$20 ,%edx
+	movl	$1 ,%edx
 	movl	%edx, _X+4
 	
-	label_40:
+	label_22:
 	movl	$0, %eax
-	movl	$10 ,%edx
+	movl	$4 ,%edx
 	movl	%edx, _X+8
+	
+	label_23:
+	movl	$0, %eax
+	movl	$3 ,%edx
+	movl	%edx, _X+12
+	
+	label_24:
+	movl	$0, %eax
+	movl	$5 ,%edx
+	movl	%edx, _X+16
+	
+	label_25:
+	movl	$0, %eax
+	movl	$7 ,%edx
+	movl	%edx, _X+20
+	
+	label_26:
+	movl	$0, %eax
+	movl	$6 ,%edx
+	movl	%edx, _X+24
+	
+	label_90:
+	movl	$0, %eax
+	movl	$7 ,%edx
+	movl	%edx, _N
 	
 	label_100:
 	movl	$0, %eax
 	movl	$0 ,%edx
 	movl	%edx, _I_100
-	movl	$3 ,_for_100_end_exp
+	movl	_N, %eax
+	movl	$1,%edx
+	subl	%edx, %eax
+	
+	movl	%eax ,_for_100_end_exp
 	
 	jmp for_100_control
 	
@@ -129,8 +157,8 @@ call	___main
 	movl	$0, %eax
 	movl	$0 ,%edx
 	movl	%edx, _J_200
-	movl	$2, %eax
-	movl	$1,%edx
+	movl	_N, %eax
+	movl	$2,%edx
 	subl	%edx, %eax
 	
 	subl	_I_100, %eax
@@ -147,18 +175,6 @@ call	___main
 	movl	$1,%edx
 	addl	%edx, %eax
 	movl	%eax, _NIDEX_200
-	
-	label_211:
-	movl	$0, %eax
-	movl	_J_200, %ebx
-	movl	_X(,%ebx, 4), %ebx
-	movl  %ebx, (%esp)
-	call _print
-	
-	movl	_NIDEX_200, %ebx
-	movl	_X(,%ebx, 4), %ebx
-	movl  %ebx, (%esp)
-	call _print
 	
 	label_212:
 	movl	$0, %eax
@@ -184,16 +200,13 @@ call	___main
 	
 	label_215:
 	movl	$0, %eax
-	movl  _CUR_200, %ecx
-	movl	_NVAL_200, %edx
+	movl	_J_200, %ebx
+	 movl  _X(,%ebx, 4), %ecx
+	movl	_NIDEX_200, %ebx
+	 movl  _X(,%ebx, 4), %edx
 	cmpl  %edx, %ecx
-	jl    label_260
+	jle    label_600
 	
-	label_216:
-	movl	$0, %eax
-	movl	$_string_0,(%esp)
-	call	_print_string
-	movl	$0, %eax
 	label_220:
 	movl	$0, %eax
 	
@@ -227,18 +240,6 @@ call	___main
 	movl   _NIDEX_200, %ebx
 	movl	%edx, _X(,%ebx,4)
 	
-	label_250:
-	movl	$0, %eax
-	movl	_J_200, %ebx
-	movl	_X(,%ebx, 4), %ebx
-	movl  %ebx, (%esp)
-	call _print
-	
-	label_260:
-	movl	$0, %eax
-	movl	$_string_1,(%esp)
-	call	_print_string
-	movl	$0, %eax
 	label_600:
 	
 	movl	_J_200, %eax
@@ -267,14 +268,18 @@ call	___main
 	
 	label_800:
 	movl	$0, %eax
-	movl	$_string_2,(%esp)
+	movl	$_string_0,(%esp)
 	call	_print_string
 	movl	$0, %eax
 	label_900:
 	movl	$0, %eax
 	movl	$0 ,%edx
 	movl	%edx, _A_900
-	movl	$2 ,_for_900_end_exp
+	movl	_N, %eax
+	movl	$1,%edx
+	subl	%edx, %eax
+	
+	movl	%eax ,_for_900_end_exp
 	
 	jmp for_900_control
 	
@@ -300,5 +305,10 @@ call	___main
 	cmpl	%ebx, %eax
 	jle	for_900_body
 	
+	label_1100:
+	movl	$0, %eax
+	movl	$_string_1,(%esp)
+	call	_print_string
+	movl	$0, %eax
 	leave
 ret
