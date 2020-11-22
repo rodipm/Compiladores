@@ -538,7 +538,7 @@ class Parser(object):
 
             Term: Eb ((MUL | DIV) Eb)*
 
-            Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var | FN letter LPAREN Exp RPAREN
+            Eb: PLUS Eb | MINUS Eb | INTEGER | LPAREN Exp RPAREN | INTEGER | Var | FN letter LPAREN Exp RPAREN | RND LPRATEN Exp RPAREN
 
             Read : READ Var
 
