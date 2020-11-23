@@ -36,62 +36,42 @@ class CodeGenerator(NodeVisitor):
 
         print('BinOp', node.op.type, left, right)
 
-        arr_preparation_code = ""
-
-        # TODO: Adicionar tratamento de array multidimensinal
-        # Arrays
-        # # x
-        # movl	_x, %edx
-
-        # # y
-        # movl	$13, %ecx 	# Dim2
-        # imul	%ecx, %edx
-        # movl	%edx, %eax
-
-        # movl	_y, %edx
-        # addl	%edx, %eax
-
-        # # z
-        # movl	$21, %ecx 	# Dim3
-        # imul	%ecx, %edx
-        # movl	%edx, %eax
-
-        # movl	_z, %edx
-        # addl	%edx, %eax
+        arr_preparation_code_l = ""
+        arr_preparation_code_r = ""
 
         if hasattr(node.left, "index_exp") and node.left.index_exp:
             # 1D
             if len(node.left.index_exp) == 1:
                 print("BinOp LEFT - ARRAY - 1d")
-                arr_preparation_code += f"\nmovl    {self.visit(node.left.index_exp[0])}, %ebx\n"
+                arr_preparation_code_l += f"\nmovl    {self.visit(node.left.index_exp[0])}, %ebx\n"
             # ND
             else:
                 print("BinOp LEFT - ARRAY - Nd")
                 for i, i_exp in enumerate(node.left.index_exp):
-                    arr_preparation_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    arr_preparation_code_l += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
                     if (i+1 < len(node.left.index_exp)):
                         cur_dim = self.ARRAY_DECLARATIONS[node.left.value][i+1]
-                        arr_preparation_code += f"movl    ${cur_dim}, %ecx\n"
-                        arr_preparation_code += f"imul    %ecx, %edx\n"
-                        arr_preparation_code += f"movl    %edx, %eax\n"
-                arr_preparation_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                        arr_preparation_code_l += f"movl    ${cur_dim}, %ecx\n"
+                        arr_preparation_code_l += f"imul    %ecx, %edx\n"
+                        arr_preparation_code_l += f"movl    %edx, %eax\n"
+                arr_preparation_code_l += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n\npushl\t%ebx\n"
                 
-        elif hasattr(node.right, "index_exp") and node.right.index_exp:
+        if hasattr(node.right, "index_exp") and node.right.index_exp:
             # 1D
             if len(node.right.index_exp) == 1:
                 print("BinOp RIGHT - ARRAY - 1d")
-                arr_preparation_code += f"\nmovl    {self.visit(node.right.index_exp[0])}, %ebx\n"
+                arr_preparation_code_r += f"\nmovl    {self.visit(node.right.index_exp[0])}, %ebx\n"
             # ND
             else:
                 print("BinOp RIGHT - ARRAY - Nd")
                 for i, i_exp in enumerate(node.right.index_exp):
-                    arr_preparation_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    arr_preparation_code_r += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
                     if (i+1 < len(node.right.index_exp)):
                         cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
-                        arr_preparation_code += f"movl    ${cur_dim}, %ecx\n"
-                        arr_preparation_code += f"imul    %ecx, %edx\n"
-                        arr_preparation_code += f"movl    %edx, %eax\n"
-                arr_preparation_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                        arr_preparation_code_r += f"movl    ${cur_dim}, %ecx\n"
+                        arr_preparation_code_r += f"imul    %ecx, %edx\n"
+                        arr_preparation_code_r += f"movl    %edx, %eax\n"
+                arr_preparation_code_r += f"movl\t$0, %ebx\naddl\t%eax, %ebx\npushl\t%ebx\n"
 
         if node.op.type in [PLUS, MINUS]:
             op_1 = ""
@@ -130,15 +110,17 @@ class CodeGenerator(NodeVisitor):
             opr = ""
             if node.op.type == MUL:
                 opr = "imul\t%ecx, %edx\nmovl\t%edx, %eax\n"
-            
-
                 if not hasattr(node.left, 'op'):
-                    op_1 = "movl\t" + left + ", %ecx\n"
+                    if arr_preparation_code_l:
+                        op_1 += "popl %ebx\n"
+                    op_1 += "movl\t" + left + ", %ecx\n"
                 elif hasattr(node.left, 'op'):
                     op_1 = left + "\n" + "movl\t" + "%eax, %ecx\n"
 
                 if not hasattr(node.right, 'op'):
-                    op_2 = "movl\t" + right + ", %edx\n"
+                    if arr_preparation_code_r:
+                        op_2 += "popl %ebx\n"
+                    op_2 += "movl\t" + right + ", %edx\n"
                 elif hasattr(node.right, 'op'):
                     op_2 = right + "\n" + "movl\t" + "%eax, %edx\n"
                     
@@ -146,12 +128,16 @@ class CodeGenerator(NodeVisitor):
                 opr = "movl\t$0, %edx\nidiv\t%ecx\n"
 
                 if not hasattr(node.left, 'op'):
-                    op_1 = "movl\t" + left + ", %eax\n"
+                    if arr_preparation_code_l:
+                        op_1 += "popl %ebx\n"
+                    op_1 += "movl\t" + left + ", %eax\n"
                 elif hasattr(node.left, 'op'):
                     op_1 = left + "\n"
 
                 if not hasattr(node.right, 'op'):
-                    op_2 = "movl\t" + right + ", %ecx\n"
+                    if arr_preparation_code_r:
+                        op_2 += "popl %ebx\n"
+                    op_2 += "movl\t" + right + ", %ecx\n"
                 elif hasattr(node.right, 'op'):
                     op_2 = right + "\n" + "movl\t" + "%eax, %ecx\n"
             
@@ -160,7 +146,7 @@ class CodeGenerator(NodeVisitor):
             else:
                 result_code = op_1 + op_2 + opr
 
-
+        arr_preparation_code = arr_preparation_code_r + arr_preparation_code_l
         return arr_preparation_code + result_code
 
     def visit_StatementList(self, node):
@@ -254,6 +240,7 @@ class CodeGenerator(NodeVisitor):
 
         # Assign para variaveis
         else:
+
             # Verifica o escopo
             if self.VAR_DECLARATIONS.get(var_scopes_list[-1]) is None:
                 # adiciona escopo
@@ -275,17 +262,16 @@ class CodeGenerator(NodeVisitor):
                     var_name = var_name + "_" + var_scopes_list[-1]
 
             if hasattr(node.right, "index_exp") and node.right.index_exp:
-                if (len(node.right.index_exp) == 1):
-                    indexing_code = ""
-                    for i, i_exp in enumerate(node.right.index_exp):
-                        indexing_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
-                        if (i+1 < len(node.right.index_exp)):
-                            cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
-                            indexing_code += f"movl    ${cur_dim}, %ecx\n"
-                            indexing_code += f"imul    %ecx, %edx\n"
-                            indexing_code += f"movl    %edx, %eax\n"
-                    indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
-                    return indexing_code + "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
+                indexing_code = ""
+                for i, i_exp in enumerate(node.right.index_exp):
+                    indexing_code += f"\nmovl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.right.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.right.value][i+1]
+                        indexing_code += f"movl    ${cur_dim}, %ecx\n"
+                        indexing_code += f"imul    %ecx, %edx\n"
+                        indexing_code += f"movl    %edx, %eax\n"
+                indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                return indexing_code + "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
             elif node.right.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
                 return "movl\t" +  str(value) + " ,%edx\nmovl\t%edx, _" + var_name + "\n"
             else:
@@ -425,6 +411,58 @@ class CodeGenerator(NodeVisitor):
             else:
                 exp = self.visit(node.token)
                 return f"\n{exp}\nmovl\t%eax, %edx\npushl\t%edx\ncall\t_print\npopl\t%eax\nmovl\t$0, %eax"
+
+    def visit_PutStatement(self, node):
+        print("VISIT PUT STATEMENT")
+        child_code = []
+        for child in node.children:
+            if child.__class__.__name__ != "NoOp":
+                child_code.append(self.visit(child))
+
+        child_code = list(filter(lambda x: x != None, child_code))
+        return '\n'.join(child_code)
+
+    def visit_PutItem(self, node):
+        # Arrays
+        if hasattr(node.token, 'index_exp') and node.token.index_exp:
+            # 1D
+            if len(node.token.index_exp) == 1:
+                if node.token.index_exp[0].__class__.__name__ in ["Num", "UnaryOp"]:
+                    read_code = f"movl\t_{node.token.value}+{node.token.index_exp[0].value*4}, %edx\npushl\t%edx\ncall\t_put\npopl %eax\nmovl\t$0, %eax"
+                else:
+                    if node.token.value not in self.ARRAY_DECLARATIONS:
+                        raise NameError(f"Array: {node.token.value} não definido.")
+                    read_code = f"movl	{self.visit(node.token.index_exp[0])}, %ebx\nmovl	_{node.token.value}(,%ebx, 4), %ebx\npushl\t%edx\n\ncall _put\npopl %edx\n"
+                return read_code
+            # ND
+            else:
+                indexing_code = "\nmovl\t$0, %eax\nmovl\t$0, %ebx\n"
+                for i, i_exp in enumerate(node.token.index_exp):
+                    indexing_code += f"movl    {self.visit(i_exp)}, %edx\n\naddl	%edx, %eax\n"
+                    if (i+1 < len(node.token.index_exp)):
+                        cur_dim = self.ARRAY_DECLARATIONS[node.token.value][i+1]
+                        indexing_code += f"movl    ${cur_dim}, %ecx\n"
+                        indexing_code += f"imul    %ecx, %edx\n"
+                        indexing_code += f"movl    %edx, %eax\n"
+                indexing_code += f"movl\t$0, %ebx\naddl\t%eax, %ebx\n"
+                read_code = f"{indexing_code}movl	{self.visit(node.token)}, %ebx\npushl\t%ebx\ncall _put\n\npopl %ebx\n"
+                return read_code
+        # Strings
+        elif node.token.__class__.__name__ == "String":
+            # Verifica se string ja existe e, caso não exista, a insere na tabela de simbolos de strings
+            string_value = node.token.value
+            if string_value not in self.STRING_DECLARATIONS:
+                self.STRING_DECLARATIONS.append(string_value)
+
+            string_label = f"$_string_{self.STRING_DECLARATIONS.index(string_value)}"
+            return f"\npushl\t%ebx\npushl\t{string_label}\ncall\t_put\npopl\t%eax\nmovl\t$0, %eax"
+        else: 
+            if node.token.__class__.__name__ in ["Var", "Num", "UnaryOp"]:
+                val = self.visit(node.token)
+                return f"movl\t{val}, %edx\npushl\t%edx\ncall\t_put\n\npopl\t%eax\nmovl\t$0, %eax"
+            else:
+                exp = self.visit(node.token)
+                return f"\n{exp}\nmovl\t%eax, %edx\npushl\t%edx\ncall\t_put\npopl\t%eax\nmovl\t$0, %eax"
 
     def visit_GotoStatement(self, node):
         label_name = "label_" + str(node.destination_line)
@@ -613,7 +651,10 @@ class CodeGenerator(NodeVisitor):
 
         array_var = node.arr_var
         array_dims = node.arr_dims
+        # array_dims[0] += 1
 
+        print("ARRAY DIMS")
+        print(array_dims)
         self.ARRAY_DECLARATIONS[array_var.value] = array_dims
 
         return ""
@@ -627,6 +668,7 @@ class CodeGenerator(NodeVisitor):
         # Declaração de strings
         asm_code = "\t.section\t.rdata,\"dr\"\nLC0:\n.ascii\t\"%d\\12\\0\"\n"
         asm_code += "\nLC1:\n.ascii\t\"%d\\0\"\n"
+        asm_code += "\nLC2:\n.ascii\t\"%d \\0\"\n"
         
         for i, decl_string in enumerate(self.STRING_DECLARATIONS):
             asm_code += f"_string_{i}:\n.ascii\t\"{decl_string}\\0\"\n"
@@ -644,8 +686,10 @@ class CodeGenerator(NodeVisitor):
         # Arrays
         for arr in self.ARRAY_DECLARATIONS.keys():
             arr_dims = self.ARRAY_DECLARATIONS[arr]
-            arr_size = sum(arr_dims)*4
-            asm_code += f".comm	_{arr}, {arr_size}, 2\n"
+            for i in range(len(arr_dims)):
+                arr_dims[i] += 2
+            arr_size = (sum(arr_dims))*4
+            asm_code += f".comm	_{arr}, {arr_size}, 4\n"
 
         
         # Código
@@ -654,12 +698,16 @@ class CodeGenerator(NodeVisitor):
         asm_code += "\n\n.text\n\n"
         asm_code += ".globl\t_print\n_print:\npushl\t%ebp\nmovl\t%esp, %ebp\nsubl\t$24, %esp\nmovl\t8(%ebp), %eax\nmovl\t%eax, 4(%esp)\nmovl\t$LC0, (%esp)\ncall	_printf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
 
+        ## PRINT FUNCTION
+        asm_code += "\n\n.text\n\n"
+        asm_code += ".globl\t_put\n_put:\npushl\t%ebp\nmovl\t%esp, %ebp\nsubl\t$24, %esp\nmovl\t8(%ebp), %eax\nmovl\t%eax, 4(%esp)\nmovl\t$LC2, (%esp)\ncall	_printf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
+
         ## PRINT_STRING FUNCTION
         asm_code += ".globl	_print_string\n_print_string:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, (%esp)\ncall	_puts\nnop\nleave\nret\n\n"
-
+       
         ## SCAN FUNCTION
         asm_code += ".globl	_read\n_read:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	8(%ebp), %eax\nmovl	%eax, 4(%esp)\nmovl	$LC1, (%esp)\ncall	_scanf\naddl	$24, %esp\nmovl	%ebp, %esp\nnop\nleave\nret\n\n"
-
+       
         ## PREDEF RND
         asm_code += ".globl	_predef_rnd\n_predef_rnd:\npushl	%ebp\nmovl	%esp, %ebp\nsubl	$24, %esp\nmovl	$0, (%esp)\ncall	_time\nmovl	%eax, (%esp)\ncall	_srand\ncall	_rand\ncltd\nidivl	8(%ebp)\nmovl	%edx, %eax\naddl	$24, %esp\nmovl	%ebp, %esp\nleave\nret\n\n"
         

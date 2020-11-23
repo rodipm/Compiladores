@@ -65,6 +65,16 @@ class PrintItem(AST):
     def __init__(self, token):
         self.token = token
 
+class PutStatement(AST):
+    __doc__ = 'Representação de um comando de PUT'
+    def __init__(self):
+        self.children = []
+
+class PutItem(AST):
+    __doc__ = 'Representação de um item de PUT'
+    def __init__(self, token):
+        self.token = token
+
 class ReadStatement(AST):
     __doc__ = 'Representação do comando de leitura de dados via stdin'
     def __init__(self, dest_var):

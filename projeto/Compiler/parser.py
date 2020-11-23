@@ -82,6 +82,8 @@ class Parser(object):
             node = self.Next(line_number)
         elif self.current_token.type == PRINT:
             node = self.Print()
+        elif self.current_token.type == PUT:
+            node = self.Put()
         elif self.current_token.type == READ:
             node = self.Read()
         elif self.current_token.type == DIM:
@@ -227,6 +229,42 @@ class Parser(object):
             return PrintItem(String(string_node.value))
         else:
             return PrintItem(self.Exp())
+
+    def Put(self):
+        """
+            Print : PUT PutItem (COMMA PutItem)* | (COMMA PutItem)* COMMA
+        """
+        print("Print")
+        self.consome(PUT)
+
+        put_root = PutStatement()
+
+        put_root.children.append(self.PutItem())
+
+        token = self.current_token
+        print("AFTER FIRST PITEM")
+        print("TOKEN: ", token)
+
+        while token.type == COMMA:
+            print("Eating comma")
+            self.consome(COMMA)
+            put_root.children.append(self.PutItem())
+            token = self.current_token
+        
+        return put_root
+
+    def PutItem(self):
+        """
+            PutItem : Exp | STRING
+        """
+        print("(PutItem)")
+        print(self.current_token.type)
+        if self.current_token.type == STRING:
+            string_node = self.current_token
+            self.consome(STRING)
+            return PutItem(String(string_node.value))
+        else:
+            return PutItem(self.Exp())
 
 
     def Eb(self):
